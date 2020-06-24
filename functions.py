@@ -34,7 +34,32 @@ class func:
         v[:, -1] = v[:, 1]
         v[:, 0] = v[:, -2]
 
-    def urhs(self, u, v, splited=False):
+    def top_wall(self,u,v,u_func,v_func):
+        xu, yu = self.probDescription.get_XVol()
+        xv, yv = self.probDescription.get_YVol()
+        u[-1, 1:] = 2*u_func(xu) - u[-2, 1:]
+        v[-1, 1:-1] = v_func(xv)
+
+    def bottom_wall(self,u,v,u_func,v_func):
+        xu, yu = self.probDescription.get_XVol()
+        xv, yv = self.probDescription.get_YVol()
+        u[0, 1:] =  2 * u_func(xu) - u[1, 1:]
+        v[1, 1:-1] = v_func(xv)
+
+    def left_wall(self,u,v,u_func,v_func):
+        xu, yu = self.probDescription.get_XVol()
+        xv, yv = self.probDescription.get_YVol()
+        u[1:-1, 1] = u_func(yu)
+        v[1:, 0] = 2*v_func(yv) -v[1:, 1]
+
+    def right_wall(self,u,v,u_func,v_func):
+        xu, yu = self.probDescription.get_XVol()
+        xv, yv = self.probDescription.get_YVol()
+        u[1:-1, -1] = u_func(yu)
+        v[1:,-1] = 2.0*v_func(yv) - v[1:,-2]
+
+
+    def urhs(self, u, v):
         μ = self.probDescription.μ
         dx = self.probDescription.dx
         dy = self.probDescription.dy
@@ -63,19 +88,9 @@ class func:
 
         # set periodicity in x and y
         self.periodic_u(urhs)
+        return urhs
 
-        if splited:
-            convection_x = np.zeros_like(urhs)
-            diffusion_x = np.zeros_like(urhs)
-            self.periodic_u(convection)
-            self.periodic_u(diffusion)
-            convection_x[1:ny + 1, 1:nx + 1] = convection
-            diffusion_x[1:ny + 1, 1:nx + 1] = diffusion
-            return convection_x, diffusion_x
-        else:
-            return urhs
-
-    def nonlinear_conv_diff_x(self, u, v, splited=False):
+    def urhs_bcs(self,u,v):
         μ = self.probDescription.μ
         dx = self.probDescription.dx
         dy = self.probDescription.dy
@@ -83,52 +98,27 @@ class func:
         ny = self.probDescription.ny
 
         urhs = np.zeros_like(u)
-        U = u.copy() - 1
-        V = v.copy() - 1
-        # do x-momentum first - u is of size (nx + 2) x (ny + 2)
-        ue = 0.5 * (u[1:ny + 1, 2:nx + 2] + u[1:ny + 1, 1:nx + 1])
-        uw = 0.5 * (u[1:ny + 1, 1:nx + 1] + u[1:ny + 1, :nx])
 
-        un = 0.5 * (u[2:ny + 2, 1:nx + 1] + u[1:ny + 1, 1:nx + 1])
-        us = 0.5 * (u[1:ny + 1, 1:nx + 1] + u[:ny, 1:nx + 1])
+        ue = 0.5 * (u[1:ny + 1, 3:nx + 2] + u[1:ny + 1, 2:nx + 1])
+        uw = 0.5 * (u[1:ny + 1, 2:nx + 1] + u[1:ny + 1, 1:nx])
 
-        vn = 0.5 * (v[2:ny + 2, 1:nx + 1] + v[2:ny + 2, :nx])
-        vs = 0.5 * (v[1:ny + 1, 1:nx + 1] + v[1:ny + 1, :nx])
+        un = 0.5 * (u[2:ny + 2, 2:nx + 1] + u[1:ny + 1, 2:nx + 1])
+        us = 0.5 * (u[1:ny + 1, 2:nx + 1] + u[0:ny, 2:nx + 1])
+
+        vn = 0.5 * (v[2:ny + 2, 2:nx + 1] + v[2:ny + 2, 1:nx])
+        vs = 0.5 * (v[1:ny + 1, 2:nx + 1] + v[1:ny + 1, 1:nx])
 
         # convection = - d(uu)/dx - d(vu)/dy
-        convection = - U[1:ny + 1, 1:nx + 1] * (ue - uw) / dx - V[1:ny + 1, 1:nx + 1] * (vn - vs) / dy
+        convection = - (ue * ue - uw * uw) / dx - (un * vn - us * vs) / dy
 
         # diffusion = d2u/dx2 + d2u/dy2
-        diffusion = μ * ((u[1:ny + 1, 2:nx + 2] - 2.0 * u[1:ny + 1, 1:nx + 1] + u[1:ny + 1, :nx]) / dx / dx + (
-                    u[2:ny + 2, 1:nx + 1] - 2.0 * u[1:ny + 1, 1:nx + 1] + u[:ny, 1:nx + 1]) / dy / dy)
+        diffusion = μ * ((u[1:ny + 1, 3:nx + 2] - 2.0 * u[1:ny + 1, 2:nx + 1] + u[1:ny + 1, 1:nx]) / dx / dx + (
+                    u[2:ny + 2, 2:nx + 1] - 2.0 * u[1:ny + 1, 2:nx + 1] + u[0:ny, 2:nx + 1]) / dy / dy)
 
-        convection_x = np.zeros_like(urhs)
-        diffusion_x = np.zeros_like(urhs)
+        urhs[1:ny + 1, 2:nx + 1] = convection + diffusion
+        return urhs
 
-        self.periodic_u(convection)
-        self.periodic_u(diffusion)
-
-        convection_x[1:ny + 1, 1:nx + 1] = -convection
-        diffusion_x[1:ny + 1, 1:nx + 1] = -diffusion
-        return convection_x, diffusion_x
-
-    def u_hat(self, u, v):
-        μ = self.probDescription.μ
-        dx = self.probDescription.dx
-        dy = self.probDescription.dy
-        nx = self.probDescription.nx
-        ny = self.probDescription.ny
-        dt = self.probDescription.dt
-
-        uh = np.zeros_like(u)
-        # uh[1:ny+1,1:nx+1] = u[1:ny+1,1:nx+1] + dt *urhs(u,v,μ,dx,dy,nx,ny)
-        uh[1:ny + 1, 1:nx + 1] = u[1:ny + 1, 1:nx + 1] + dt * self.urhs(u, v, μ, dx, dy, nx, ny)
-        # set periodicity in x and y
-        self.periodic_u(uh)
-
-        return uh
-
-    def vrhs(self, u, v, splited=False):
+    def vrhs(self, u, v):
         μ = self.probDescription.μ
         dx = self.probDescription.dx
         dy = self.probDescription.dy
@@ -154,65 +144,36 @@ class func:
         vrhs[1:ny + 1, 1:nx + 1] = convection + diffusion
         # set periodicity in x and y
         self.periodic_v(vrhs)
+        return vrhs
 
-        if splited:
-            convection_y = np.zeros_like(vrhs)
-            diffusion_y = np.zeros_like(vrhs)
-            self.periodic_v(convection)
-            self.periodic_v(diffusion)
-            convection_y[1:ny + 1, 1:nx + 1] = convection
-            diffusion_y[1:ny + 1, 1:nx + 1] = diffusion
-            return convection_y, diffusion_y
-        else:
-            return vrhs
-
-    def nonlinear_conv_diff_y(self, u, v):
+    def vrhs_bcs(self,u,v):
         μ = self.probDescription.μ
         dx = self.probDescription.dx
         dy = self.probDescription.dy
         nx = self.probDescription.nx
         ny = self.probDescription.ny
+
         vrhs = np.zeros_like(u)
-        U = u.copy() - 1
-        V = v.copy() - 1
-        # do y-momentum
-        ve = 0.5 * (v[1:ny + 1, 2:nx + 2] + v[1:ny + 1, 1:nx + 1])
-        vw = 0.5 * (v[1:ny + 1, 1:nx + 1] + v[1:ny + 1, :nx])
+        # do y-momentum - only need to do interior points
+        ve = 0.5 * (v[2:ny + 1, 2:nx + 2] + v[2:ny + 1, 1:nx + 1])
+        vw = 0.5 * (v[2:ny + 1, 1:nx + 1] + v[2:ny + 1, 0:nx])
 
-        ue = 0.5 * (u[1:ny + 1, 2:nx + 2] + u[:ny, 2:nx + 2])
-        uw = 0.5 * (u[1:ny + 1, 1:nx + 1] + u[:ny, 1:nx + 1])
+        ue = 0.5 * (u[2:ny + 1, 2:nx + 2] + u[1:ny, 2:nx + 2])
+        uw = 0.5 * (u[2:ny + 1, 1:nx + 1] + u[1:ny, 1:nx + 1])
 
-        vn = 0.5 * (v[2:ny + 2, 1:nx + 1] + v[1:ny + 1, 1:nx + 1])
-        vs = 0.5 * (v[1:ny + 1, 1:nx + 1] + v[:ny, 1:nx + 1])
+        vn = 0.5 * (v[3:ny + 2, 1:nx + 1] + v[2:ny + 1, 1:nx + 1])
+        vs = 0.5 * (v[2:ny + 1, 1:nx + 1] + v[1:ny, 1:nx + 1])
 
         # convection = d(uv)/dx + d(vv)/dy
-        convection = - U[1:ny + 1, 1:nx + 1] * (ve - vw) / dx - V[1:ny + 1, 1:nx + 1] * (vn - vs) / dy
+        convection = - (ue * ve - uw * vw) / dx - (vn * vn - vs * vs) / dy
+
         # diffusion = d2u/dx2 + d2u/dy2
-        diffusion = μ * ((v[1:ny + 1, 2:nx + 2] - 2.0 * v[1:ny + 1, 1:nx + 1] + v[1:ny + 1, :nx]) / dx / dx + (
-                    v[2:ny + 2, 1:nx + 1] - 2.0 * v[1:ny + 1, 1:nx + 1] + v[:ny, 1:nx + 1]) / dy / dy)
+        diffusion = μ * ((v[2:ny + 1, 2:nx + 2] - 2.0 * v[2:ny + 1, 1:nx + 1] + v[2:ny + 1, 0:nx]) / dx / dx + (
+                    v[3:ny + 2, 1:nx + 1] - 2.0 * v[2:ny + 1, 1:nx + 1] + v[1:ny, 1:nx + 1]) / dy / dy)
 
-        convection_y = np.zeros_like(vrhs)
-        diffusion_y = np.zeros_like(vrhs)
-        self.periodic_v(convection)
-        self.periodic_v(diffusion)
-        convection_y[1:ny + 1, 1:nx + 1] = -convection
-        diffusion_y[1:ny + 1, 1:nx + 1] = -diffusion
-        return convection_y, diffusion_y
+        vrhs[2:ny + 1, 1:nx + 1] = convection + diffusion
 
-    def v_hat(self, u, v):
-        μ = self.probDescription.μ
-        dx = self.probDescription.dx
-        dy = self.probDescription.dy
-        nx = self.probDescription.nx
-        ny = self.probDescription.ny
-        dt = self.probDescription.dt
-
-        vh = np.zeros_like(u)
-        # do y-momentum
-        vh[1:ny + 1, 1:nx + 1] = v[1:ny + 1, 1:nx + 1] + dt * self.vrhs(u, v, μ, dx, dy, nx, ny)
-        # set periodicity in x and y
-        self.periodic_v(vh)
-        return vh
+        return vrhs
 
     def div(self, fx, fy):
         dx = self.probDescription.dx
@@ -300,7 +261,81 @@ class func:
                                 [0, 1, -1, nx, -nx, nx - 1, nx * (ny - 1), -nx + 1, -nx * (ny - 1)], format='csr')
         return A1
 
-    def ImQ(self, uh, vh, Coef, p0=0):
+    def A_channel_flow(self):
+        dx = self.probDescription.dx
+        dy = self.probDescription.dy
+        nx = self.probDescription.nx
+        ny = self.probDescription.ny
+        # build pressure coefficient matrix
+        Ap = np.zeros([ny, nx])
+        Ae = 1.0 / dx / dx * np.ones([ny, nx])
+        As = 1.0 / dy / dy * np.ones([ny, nx])
+        An = 1.0 / dy / dy * np.ones([ny, nx])
+        Aw = 1.0 / dx / dx * np.ones([ny, nx])
+        # set left wall coefs
+        Aw[:, 0] = 0.0
+        # set right wall coefs
+        Ae[:, -1] = 0.0
+        # set top wall coefs
+        An[-1, :] = 0.0
+        # set bottom wall coefs
+        As[0, :] = 0.0
+        Ap = -(Aw + Ae + An + As)
+        # for the outflow boundary condition to get -3/dx/dx
+        Ap[:, -1] -= 2 / dx / dx
+
+        n = nx * ny
+        d0 = Ap.reshape(n)
+        # print(d0)
+        de = Ae.reshape(n)[:-1]
+        # print(de)
+        dw = Aw.reshape(n)[1:]
+        # print(dw)
+        ds = As.reshape(n)[nx:]
+        # print(ds)
+        dn = An.reshape(n)[:-nx]
+        # print(dn)
+        A1 = scipy.sparse.diags([d0, de, dw, dn, ds], [0, 1, -1, nx, -nx], format='csr')
+
+        return A1
+
+    def A_Lid_driven_cavity(self):
+        dx = self.probDescription.dx
+        dy = self.probDescription.dy
+        nx = self.probDescription.nx
+        ny = self.probDescription.ny
+        # build pressure coefficient matrix
+        Ap = np.zeros([ny, nx])
+        Ae = 1.0 / dx / dx * np.ones([ny, nx])
+        As = 1.0 / dy / dy * np.ones([ny, nx])
+        An = 1.0 / dy / dy * np.ones([ny, nx])
+        Aw = 1.0 / dx / dx * np.ones([ny, nx])
+        # set left wall coefs
+        Aw[:, 0] = 0.0
+        # set right wall coefs
+        Ae[:, -1] = 0.0
+        # set top wall coefs
+        An[-1, :] = 0.0
+        # set bottom wall coefs
+        As[0, :] = 0.0
+        Ap = -(Aw + Ae + An + As)
+
+        n = nx * ny
+        d0 = Ap.reshape(n)
+        # print(d0)
+        de = Ae.reshape(n)[:-1]
+        # print(de)
+        dw = Aw.reshape(n)[1:]
+        # print(dw)
+        ds = As.reshape(n)[nx:]
+        # print(ds)
+        dn = An.reshape(n)[:-nx]
+        # print(dn)
+        A1 = scipy.sparse.diags([d0, de, dw, dn, ds], [0, 1, -1, nx, -nx], format='csr')
+
+        return A1
+
+    def ImQ(self, uh, vh, Coef, Ainv):
         dx = self.probDescription.dx
         dy = self.probDescription.dy
         dt = self.probDescription.dt
@@ -349,6 +384,54 @@ class func:
 
         return unp1, vnp1, p, num_iters
 
+    def ImQ_bcs(self, uh, vh, Coef, Ainv,bcs_pressure):
+        dx = self.probDescription.dx
+        dy = self.probDescription.dy
+        dt = self.probDescription.dt
+        nx = self.probDescription.nx
+        ny = self.probDescription.ny
+        unp1 = np.zeros_like(uh)
+        vnp1 = np.zeros_like(vh)
+        divuhat = self.div(uh, vh)
+
+        prhs = 1.0 / dt * divuhat[1:-1, 1:-1]
+        # plt.imshow(prhs,origin='bottom',cmap='jet',vmax=80, vmin=-80)
+        # # plt.contourf((psol[-1][1:-1,1:] - psol[-1][1:-1,:-1])/dx)
+        # v = np.linspace(-80, 80, 4, endpoint=True)
+        # plt.colorbar(ticks=v)
+        # plt.title('Prhs')
+        # plt.show()
+
+        rhs = prhs.ravel()
+
+        def solver(A, b):
+            num_iters = 0
+
+            def callback(xk):
+                nonlocal num_iters
+                num_iters += 1
+
+            ml = pyamg.ruge_stuben_solver(A)
+            ptmp = ml.solve(b, tol=1e-14, callback=callback)
+            # ptmp = Ainv@b
+            # ptmp = scipy.sparse.linalg.spsolve(A,b)
+            # ptmp,_ = scipy.sparse.linalg.cg(A, b, callback=callback)
+            num_iters=0
+            return ptmp, num_iters
+
+        ptmp, num_iters = solver(Coef, rhs)
+        p = np.zeros([ny + 2, nx + 2])
+        p[1:-1, 1:-1] = ptmp.reshape([ny, nx])
+
+        # set bcs on the pressure
+        bcs_pressure(p)
+
+        # time advance
+        unp1[1:-1, 1:] = uh[1:-1, 1:] - dt * (p[1:-1, 1:] - p[1:-1, :-1]) / dx
+        vnp1[1:, 1:-1] = vh[1:, 1:-1] - dt * (p[1:, 1:-1] - p[:-1, 1:-1]) / dy
+
+        return unp1, vnp1, p, num_iters
+
     def pressure_solver(self, prhs, Coef):
         nx = self.probDescription.nx
         ny = self.probDescription.ny
@@ -374,6 +457,57 @@ class func:
         # set periodicity on the pressure
         self.periodic_scalar(p)
         return p
+
+    def ImQ_post_processing(self, uh, vh, Coef, prhs, a=1):
+        dx = self.probDescription.dx
+        dy = self.probDescription.dy
+        dt = self.probDescription.dt
+        nx = self.probDescription.nx
+        ny = self.probDescription.ny
+        unp1 = np.zeros_like(uh)
+        vnp1 = np.zeros_like(vh)
+        divuhat = self.div(uh, vh)
+
+        prhs =1/dt/a *  divuhat[1:-1, 1:-1]
+        # plt.imshow(prhs,origin='bottom',cmap='jet',vmax=80, vmin=-80)
+        # # plt.contourf((psol[-1][1:-1,1:] - psol[-1][1:-1,:-1])/dx)
+        # v = np.linspace(-80, 80, 4, endpoint=True)
+        # plt.colorbar(ticks=v)
+        # plt.title('Prhs')
+        # plt.show()
+
+        rhs = prhs.ravel()
+
+        def solver(A, b):
+            num_iters = 0
+
+            def callback(xk):
+                nonlocal num_iters
+                num_iters += 1
+
+            ml = pyamg.ruge_stuben_solver(A)
+            ptmp = ml.solve(b, tol=1e-12, callback=callback)
+            # ptmp = Ainv@b
+            # ptmp = scipy.sparse.linalg.spsolve(A,b)
+            # ptmp,_ = scipy.sparse.linalg.cg(A, b, callback=callback)
+            num_iters = 0
+            return ptmp, num_iters
+
+        ptmp, num_iters = solver(Coef, rhs)
+        p = np.zeros([ny + 2, nx + 2])
+        p[1:-1, 1:-1] = ptmp.reshape([ny, nx])
+
+        # set periodicity on the pressure
+        self.periodic_scalar(p)
+
+        # time advance
+        unp1[1:-1, 1:] = uh[1:-1, 1:] - a*dt* (p[1:-1, 1:] - p[1:-1, :-1]) / dx
+        vnp1[1:, 1:-1] = vh[1:, 1:-1] - a*dt* (p[1:, 1:-1] - p[:-1, 1:-1]) / dy
+
+        self.periodic_u(unp1)
+        self.periodic_v(vnp1)
+
+        return unp1, vnp1, p, num_iters
 
     def ImQ_wasatch(self, uh, vh, Coef, prhs, b, p0=0):
         dx = self.probDescription.dx
@@ -425,50 +559,6 @@ class func:
 
         return unp1, vnp1, p, num_iters
 
-    def ImQ_timed(self, uh, vh, Coef, p0=0):
-        dx = self.probDescription.dx
-        dy = self.probDescription.dy
-        dt = self.probDescription.dt
-        nx = self.probDescription.nx
-        ny = self.probDescription.ny
-
-        unp1 = np.zeros_like(uh)
-        vnp1 = np.zeros_like(vh)
-        divuhat = self.div(uh, vh, dx, dy, nx, ny)
-
-        prhs = 1.0 / dt * divuhat[1:-1, 1:-1]
-
-        rhs = prhs.ravel()
-
-        def solver(A, b):
-            num_iters = 0
-
-            def callback(xk):
-                nonlocal num_iters
-                num_iters += 1
-
-            ml = pyamg.ruge_stuben_solver(A)
-            ptmp = ml.solve(b, tol=1e-12, callback=callback)
-            # ptmp = scipy.sparse.linalg.spsolve(A,b,callback=callback)
-            return ptmp, num_iters
-
-        solver_time_start = time.clock()
-        ptmp, num_iters = solver(Coef, rhs)
-        solver_time = time.clock() - solver_time_start
-        p = np.zeros([ny + 2, nx + 2])
-        p[1:-1, 1:-1] = ptmp.reshape([ny, nx])
-
-        # set periodicity on the pressure
-        self.periodic_scalar(p)
-
-        # time advance
-        unp1[1:-1, 1:] = uh[1:-1, 1:] - dt * (p[1:-1, 1:] - p[1:-1, :-1]) / dx
-        vnp1[1:, 1:-1] = vh[1:, 1:-1] - dt * (p[1:, 1:-1] - p[:-1, 1:-1]) / dy
-
-        self.periodic_u(unp1)
-        self.periodic_v(vnp1)
-
-        return unp1, vnp1, p, num_iters, solver_time
 
     def Guess(self, pold, order=None, integ='Rk3', type='regular'):
         pn = pold[0]
