@@ -4,7 +4,7 @@ import time
 import statistics
 import singleton_classes as sc
 
-def error_RK4 (steps = 3,return_iter=False,name='regular',guess=None,project=[1,1,1]):
+def error_RK4 (steps = 3,return_stability=False,name='regular',guess=None,project=[1,1,1],alpha=0.99):
     # problem description
     probDescription = sc.ProbDescription()
     f = func(probDescription)
@@ -75,7 +75,6 @@ def error_RK4 (steps = 3,return_iter=False,name='regular',guess=None,project=[1,
     ken_exact = np.sum(uexc_cc.ravel()**2 +vexc_cc.ravel()**2)/2
     ken_old = ken_new
     final_KE = nx*ny
-    alpha = 0.75
     target_ke = ken_exact - alpha*(ken_exact-final_KE)
     print('time = ',t)
     print('ken_new = ',ken_new)
@@ -234,7 +233,7 @@ def error_RK4 (steps = 3,return_iter=False,name='regular',guess=None,project=[1,
         if (((ken_new - ken_old)/ken_old) > 0 and count>1) or np.isnan(ken_new):
             is_stable = False
             print('is_stable = ',is_stable)
-            if stability_counter >3:
+            if stability_counter >5:
                 print('not stable !!!!!!!!')
                 break
             else:
@@ -255,8 +254,8 @@ def error_RK4 (steps = 3,return_iter=False,name='regular',guess=None,project=[1,
         count+=1
     diff = np.linalg.norm(uexact(a,b,xu,yu,t).ravel()-unp1[1:-1,1:].ravel(),np.inf)
     print('        error={}'.format(diff))
-    if return_iter:
-        return diff, [div_n,div2,div3,div_np1], is_stable, int(statistics.mean(iterations)), int(sum(iterations))
+    if return_stability:
+        return is_stable
 
     else:
         return diff, [div_n,div2,div3,div_np1], is_stable, unp1[1:-1,1:].ravel()
