@@ -9,12 +9,21 @@ from singleton_classes import ProbDescription
 from error_func_RK2 import error_RK2
 from error_func_RK3 import error_RK3
 from error_func_RK4 import error_RK4
+from lid_driven_cavity_RK2 import error_lid_driven_cavity_RK2
+from lid_driven_cavity_RK3 import error_lid_driven_cavity_RK3
 
+#taylor vortex
+# probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
 
-probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
+# lid-driven-cavity
+ν = 0.01
+Uinlet = 1
+probDescription = ProbDescription(N=[32,32],L=[1,1],μ =ν,dt = 0.005)
+dx,dy = probDescription.dx, probDescription.dy
+dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
+probDescription.set_dt(dt/4)
 
-
-levels = 8        # total number of refinements
+levels = 6        # total number of refinements
 
 rx = 1
 ry = 1
@@ -24,6 +33,7 @@ dts = [probDescription.get_dt()/rt**i for i in range(0,levels)]
 
 timesteps = [10*rt**i for i in range(0,levels) ]
 
+print(timesteps)
 Dginv = 0
 Divergence = {}
 Errors =[]
@@ -35,9 +45,12 @@ phiAll = []
 for dt, nsteps in zip(dts, timesteps):
     probDescription.set_dt(dt)
     # e, divs, _, phi =error_RK2(steps = nsteps,name='midpoint',guess='first',project=[0])
-    # e, divs, _, phi = error_RK3(steps=nsteps, name='regular', guess='second', project=[1, 1])
-    e, divs, _, phi =error_RK4(steps = nsteps,name='3/8',guess='fourth',project=[0,0,1])
+    # e, divs, _, phi = error_RK3(steps=nsteps, name='regular', guess='second', project=[0, 0])
+    # e, divs, _, phi =error_RK4(steps = nsteps,name='3/8',guess=None,project=[1,1,1])
     # e, divs, _, phi =error_capuanos(dt=dt,μ=μ,n=Nx,steps = nsteps,guess='capuano',project=[1,0])
+    # e, divs, _, phi =error_channel_flow_FE(steps=nsteps)
+    # e, divs, _, phi =error_lid_driven_cavity_RK2(steps = nsteps,name='midpoint',guess='first',project=[0])
+    e, divs, _, phi = error_lid_driven_cavity_RK3(steps=nsteps, name='regular', guess='second', project=[0,0])
     phiAll.append(phi)
 # local errors
 exact_err_mom=[]
