@@ -151,3 +151,15 @@ class RK4:
             self.b2 = 3.0 / 8.0
             self.b3 = 3.0 / 8.0
             self.b4 = 1.0 / 8.0
+
+        elif self.name == 'sanderse':
+            self.a21 = 1.0
+            self.a31 = 3.0 / 8.0
+            self.a32 = 1.0 / 8.0
+            self.a41 = -1.0 / 8.0
+            self.a42 = -3.0 / 8.0
+            self.a43 = 3.0 /2
+            self.b1 = 1.0 / 6.0
+            self.b2 = -1.0 / 18.0
+            self.b3 = 2.0 / 3.0
+            self.b4 = 2.0 / 9.0
