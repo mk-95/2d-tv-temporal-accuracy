@@ -87,7 +87,7 @@ def error_channel_flow_FE_unsteady_inlet (steps = 3,return_stability=False, name
 
         f.left_wall(uhnp1, vhnp1, u_bc_left_wall(t+dt), v_bc_left_wall(t+dt))
 
-        unp1,vnp1,press, iter = f.ImQ_bcs(uhnp1,vhnp1,Coef,pn,p_bcs,u_bc_left_wall(t+dt)(0))
+        unp1,vnp1,press, iter = f.ImQ_bcs(uhnp1,vhnp1,Coef,pn,p_bcs)
 
         # apply bcs
         f.top_wall(unp1, vnp1, u_bc_top_wall, v_bc_top_wall)

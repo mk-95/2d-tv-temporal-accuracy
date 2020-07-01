@@ -121,7 +121,7 @@ def error_channel_flow_RK2_unsteady_inlet (steps = 3,return_stability=False, nam
 
         if d2 == 1:
             print('        pressure projection stage{} = True'.format(2))
-            u2, v2, _, iter1 = f.ImQ_bcs(uh2, vh2, Coef, pn,p_bcs,u_bc_left_wall(t+a21*dt)(0))
+            u2, v2, _, iter1 = f.ImQ_bcs(uh2, vh2, Coef, pn,p_bcs)
             print('        iterations stage 2 = ', iter1)
         elif d2 == 0:
             u2 = uh2
@@ -143,7 +143,7 @@ def error_channel_flow_RK2_unsteady_inlet (steps = 3,return_stability=False, nam
 
         f.left_wall(uhnp1, vhnp1, u_bc_left_wall(t + dt), v_bc_left_wall(t + dt))
 
-        unp1, vnp1, press, iter2 = f.ImQ_bcs(uhnp1, vhnp1, Coef, pn,p_bcs,u_bc_left_wall(t+dt)(0))
+        unp1, vnp1, press, iter2 = f.ImQ_bcs(uhnp1, vhnp1, Coef, pn,p_bcs)
 
         # apply bcs
         f.top_wall(unp1, vnp1, u_bc_top_wall, v_bc_top_wall)
