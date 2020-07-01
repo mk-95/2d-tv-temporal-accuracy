@@ -11,17 +11,30 @@ from error_func_RK3 import error_RK3
 from error_func_RK4 import error_RK4
 from lid_driven_cavity_RK2 import error_lid_driven_cavity_RK2
 from lid_driven_cavity_RK3 import error_lid_driven_cavity_RK3
+from channel_flow_FE import error_channel_flow_FE
+from channel_flow_FE_unsteady_inlet import error_channel_flow_FE_unsteady_inlet
+from channel_flow_RK2 import error_channel_flow_RK2
+from channel_flow_RK2_unsteady_inlet import error_channel_flow_RK2_unsteady_inlet
 
 #taylor vortex
 # probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
 
-# lid-driven-cavity
+# # lid-driven-cavity
+# ν = 0.01
+# Uinlet = 1
+# probDescription = ProbDescription(N=[32,32],L=[1,1],μ =ν,dt = 0.005)
+# dx,dy = probDescription.dx, probDescription.dy
+# dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
+# probDescription.set_dt(dt/4)
+
+# channel flow
 ν = 0.01
 Uinlet = 1
-probDescription = ProbDescription(N=[32,32],L=[1,1],μ =ν,dt = 0.005)
+probDescription = ProbDescription(N=[4*32,32],L=[10,1],μ =ν,dt = 0.005)
 dx,dy = probDescription.dx, probDescription.dy
 dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
 probDescription.set_dt(dt/4)
+
 
 levels = 6        # total number of refinements
 
@@ -49,8 +62,12 @@ for dt, nsteps in zip(dts, timesteps):
     # e, divs, _, phi =error_RK4(steps = nsteps,name='3/8',guess=None,project=[1,1,1])
     # e, divs, _, phi =error_capuanos(dt=dt,μ=μ,n=Nx,steps = nsteps,guess='capuano',project=[1,0])
     # e, divs, _, phi =error_channel_flow_FE(steps=nsteps)
+    # e, divs, _, phi =error_channel_flow_FE_unsteady_inlet(steps=nsteps)
+    # e, divs, _, phi =error_channel_flow_RK2(steps = nsteps,name='midpoint',guess=None,project=[1])
+    e, divs, _, phi = error_channel_flow_RK2_unsteady_inlet(steps=nsteps, name='midpoint', guess=None, project=[1])
     # e, divs, _, phi =error_lid_driven_cavity_RK2(steps = nsteps,name='midpoint',guess='first',project=[0])
-    e, divs, _, phi = error_lid_driven_cavity_RK3(steps=nsteps, name='regular', guess='second', project=[0,0])
+    # e, divs, _, phi = error_lid_driven_cavity_RK3(steps=nsteps, name='regular', guess=None, project=[1,1])
+
     phiAll.append(phi)
 # local errors
 exact_err_mom=[]
