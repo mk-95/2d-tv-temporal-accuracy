@@ -8,7 +8,7 @@ import singleton_classes as sc
 def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=[1],alpha=0.9):
     # problem description
     probDescription = sc.ProbDescription()
-    f = func(probDescription)
+    f = func(probDescription,'periodic')
     dt = probDescription.get_dt()
     μ = probDescription.get_mu()
     nx, ny = probDescription.get_gridPoints()

@@ -8,8 +8,9 @@ from singleton_classes import RK4, RK3, RK2
 
 
 class func:
-    def __init__(self, probDescription):
+    def __init__(self, probDescription,bcs_type=None):
         self.probDescription = probDescription
+        self.bcs_type = bcs_type
 
     def periodic_scalar(self, f):
         # set periodicity on the scalar
@@ -194,7 +195,8 @@ class func:
 
         gpx = np.zeros([ny + 2, nx + 2])
         gpx[1:-1, 1:] = ((p[1:-1, 1:] - p[1:-1, :-1]) / dx)
-        self.periodic_u(gpx)
+        if self.bcs_type=="periodic":
+            self.periodic_u(gpx)
         return gpx
 
     def Gpy(self, p):
@@ -203,7 +205,8 @@ class func:
         ny = self.probDescription.ny
         gpy = np.zeros([ny + 2, nx + 2])
         gpy[1:, 1:-1] = ((p[1:, 1:-1] - p[:-1, 1:-1]) / dy)
-        self.periodic_v(gpy)
+        if self.bcs_type == "periodic":
+            self.periodic_v(gpy)
         return gpy
 
     # defining pressure matrix
