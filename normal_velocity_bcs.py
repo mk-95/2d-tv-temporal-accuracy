@@ -32,8 +32,6 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
     Min = np.sum(np.ones_like(u0[1:ny+1,1]))
     Mout = np.sum(8*(yu[:ny+1,1]-yu[:ny+1,1]**2))
 
-    u0[1:ny+1,1:] = 2*(yu[:ny+1,:]-yu[:ny+1,:]**2) * Min/np.sum(2*(yu[:ny+1,:]-yu[:ny+1,:]**2))
-
     u_bc_top_wall = lambda xv: 0
     u_bc_bottom_wall = lambda xv: 0
     # u_bc_right_wall = lambda Mout:lambda yv: 8*(yu[:ny+1,1]-yu[:ny+1,1]**2)*Min/Mout
@@ -197,8 +195,8 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
         # # plt.contourf(usol[-1][1:-1,1:])
         if count % 100 ==0:
             divu = f.div(u0_free,v0_free)
-            plt.imshow(divu[1:-1,1:-1], origin='bottom')
-            plt.colorbar()
+            # plt.imshow(divu[1:-1,1:-1], origin='bottom')
+            # plt.colorbar()
             ucc = 0.5 * (u[1:-1, 2:] + u[1:-1, 1:-1])
             vcc = 0.5 * (v[2:, 1:-1] + v[1:-1, 1:-1])
             speed = np.sqrt(ucc * ucc + vcc * vcc)
@@ -206,8 +204,8 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
             # plt.plot(uexact, ycc, '-k', label='exact')
             # plt.plot(ucc[:, int(8 / dx)], ycc, '--', label='x = {}'.format(8))
             # plt.contourf(xcc, ycc, press[1:-1,1:-1])
-            # plt.contourf(xcc, ycc, speed)
-            # plt.colorbar()
+            plt.contourf(xcc, ycc, speed)
+            plt.colorbar()
             # plt.streamplot(xcc, ycc, ucc, vcc, color='black', density=0.75, linewidth=1.5)
             # plt.contourf(xcc, ycc, psol[-1][1:-1, 1:-1])
             # plt.colorbar()
