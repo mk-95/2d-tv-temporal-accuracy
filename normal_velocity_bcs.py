@@ -5,7 +5,7 @@ import singleton_classes as sc
 import statistics
 import matplotlib.pyplot as plt
 
-def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun', guess=None, project=[],alpha=0.99):
+def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun', guess=None, project=[],theta=None):
     probDescription = sc.ProbDescription()
     f = func(probDescription)
     dt = probDescription.get_dt()
@@ -89,10 +89,11 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
         print('timestep:{}'.format(count + 1))
         print('-----------')
         # rk coefficients
-        RK2 = sc.RK2(name)
+        RK2 = sc.RK2(name,theta=theta)
         a21 = RK2.a21
         b1 = RK2.b1
         b2 = RK2.b2
+        print('a21={}, b1={}, b2={}'.format(a21,b1,b2))
         u = usol[-1].copy()
         v = vsol[-1].copy()
         pn = np.zeros_like(u)
@@ -193,23 +194,23 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
 
         # plot of the pressure gradient in order to make sure the solution is correct
         # # plt.contourf(usol[-1][1:-1,1:])
-        if count % 100 ==0:
-            divu = f.div(u0_free,v0_free)
-            # plt.imshow(divu[1:-1,1:-1], origin='bottom')
-            # plt.colorbar()
-            ucc = 0.5 * (u[1:-1, 2:] + u[1:-1, 1:-1])
-            vcc = 0.5 * (v[2:, 1:-1] + v[1:-1, 1:-1])
-            speed = np.sqrt(ucc * ucc + vcc * vcc)
-            # uexact = 4 * 1.5 * ycc * (1 - ycc)
-            # plt.plot(uexact, ycc, '-k', label='exact')
-            # plt.plot(ucc[:, int(8 / dx)], ycc, '--', label='x = {}'.format(8))
-            # plt.contourf(xcc, ycc, press[1:-1,1:-1])
-            plt.contourf(xcc, ycc, speed)
-            plt.colorbar()
-            # plt.streamplot(xcc, ycc, ucc, vcc, color='black', density=0.75, linewidth=1.5)
-            # plt.contourf(xcc, ycc, psol[-1][1:-1, 1:-1])
-            # plt.colorbar()
-            plt.show()
+        # if count % 100 ==0:
+        #     divu = f.div(u0_free,v0_free)
+        #     # plt.imshow(divu[1:-1,1:-1], origin='bottom')
+        #     # plt.colorbar()
+        #     ucc = 0.5 * (u[1:-1, 2:] + u[1:-1, 1:-1])
+        #     vcc = 0.5 * (v[2:, 1:-1] + v[1:-1, 1:-1])
+        #     speed = np.sqrt(ucc * ucc + vcc * vcc)
+        #     # uexact = 4 * 1.5 * ycc * (1 - ycc)
+        #     # plt.plot(uexact, ycc, '-k', label='exact')
+        #     # plt.plot(ucc[:, int(8 / dx)], ycc, '--', label='x = {}'.format(8))
+        #     # plt.contourf(xcc, ycc, press[1:-1,1:-1])
+        #     plt.contourf(xcc, ycc, speed)
+        #     plt.colorbar()
+        #     # plt.streamplot(xcc, ycc, ucc, vcc, color='black', density=0.75, linewidth=1.5)
+        #     # plt.contourf(xcc, ycc, psol[-1][1:-1, 1:-1])
+        #     # plt.colorbar()
+        #     plt.show()
         count += 1
 
     if return_stability:
@@ -226,4 +227,4 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
 # dx,dy = probDescription.dx, probDescription.dy
 # dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
 # probDescription.set_dt(dt)
-# error_normal_velocity_bcs_RK2 (steps = 2000,return_stability=False, name='heun', guess=None, project=[1],alpha=0.99)
+# error_normal_velocity_bcs_RK2 (steps = 2000,return_stability=False, name='heun', guess=None, project=[1],teta=0.25)

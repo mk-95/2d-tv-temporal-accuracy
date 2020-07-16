@@ -65,8 +65,9 @@ class ProbDescription:
 
 @SingletonDecorator
 class RK2:
-    def __init__(self, name):
+    def __init__(self, name,theta=None):
         self.name = name
+        self.theta = theta
         self.coefs()
 
     def coefs(self):
@@ -80,6 +81,10 @@ class RK2:
             self.b1 = 0.0
             self.b2 = 1.0
 
+        elif self.name=='theta':
+            self.a21 = self.theta
+            self.b1 = 1.0 -1.0 / (self.theta*2.0)
+            self.b2 = 1.0 / (self.theta*2.0)
 
 @SingletonDecorator
 class RK3:
