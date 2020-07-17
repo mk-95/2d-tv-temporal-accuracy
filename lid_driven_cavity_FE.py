@@ -105,22 +105,22 @@ def error_lid_driven_cavity_FE (steps = 3,return_stability=False, name='', guess
 
         # plot of the pressure gradient in order to make sure the solution is correct
         # # plt.contourf(usol[-1][1:-1,1:])
-        if count % 100 ==0:
-            divu = f.div(unp1,vnp1)
-            plt.imshow(divu[1:-1,1:-1], origin='bottom')
-            plt.colorbar()
-            # ucc = 0.5 * (u[1:-1, 2:] + u[1:-1, 1:-1])
-            # vcc = 0.5 * (v[2:, 1:-1] + v[1:-1, 1:-1])
-            # speed = np.sqrt(ucc * ucc + vcc * vcc)
-            # uexact = 4 * 1.5 * ycc * (1 - ycc)
-            # plt.plot(uexact, ycc, '-k', label='exact')
-            # plt.plot(ucc[:, int(8 / dx)], ycc, '--', label='x = {}'.format(8))
-            # plt.contourf(xcc, ycc, speed)
-            # plt.colorbar()
-            # plt.streamplot(xcc, ycc, ucc, vcc, color='black', density=0.75, linewidth=1.5)
-            # plt.contourf(xcc, ycc, psol[-1][1:-1, 1:-1])
-            # plt.colorbar()
-            plt.show()
+        # if count % 100 ==0:
+        #     divu = f.div(unp1,vnp1)
+        #     plt.imshow(divu[1:-1,1:-1], origin='bottom')
+        #     plt.colorbar()
+        #     # ucc = 0.5 * (u[1:-1, 2:] + u[1:-1, 1:-1])
+        #     # vcc = 0.5 * (v[2:, 1:-1] + v[1:-1, 1:-1])
+        #     # speed = np.sqrt(ucc * ucc + vcc * vcc)
+        #     # uexact = 4 * 1.5 * ycc * (1 - ycc)
+        #     # plt.plot(uexact, ycc, '-k', label='exact')
+        #     # plt.plot(ucc[:, int(8 / dx)], ycc, '--', label='x = {}'.format(8))
+        #     # plt.contourf(xcc, ycc, speed)
+        #     # plt.colorbar()
+        #     # plt.streamplot(xcc, ycc, ucc, vcc, color='black', density=0.75, linewidth=1.5)
+        #     # plt.contourf(xcc, ycc, psol[-1][1:-1, 1:-1])
+        #     # plt.colorbar()
+        #     plt.show()
         count += 1
 
     if return_stability:
@@ -129,12 +129,12 @@ def error_lid_driven_cavity_FE (steps = 3,return_stability=False, name='', guess
         return True, [div_np1], True, unp1[1:-1,2:-1].ravel()
 
 
-from singleton_classes import ProbDescription
-#
-Uinlet = 1
-ν = 0.01
-probDescription = ProbDescription(N=[32,32],L=[1,1],μ =ν,dt = 0.005)
-dx,dy = probDescription.dx, probDescription.dy
-dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
-probDescription.set_dt(dt)
-error_lid_driven_cavity_FE (steps = 2000)
+# from singleton_classes import ProbDescription
+# #
+# Uinlet = 1
+# ν = 0.01
+# probDescription = ProbDescription(N=[32,32],L=[1,1],μ =ν,dt = 0.005)
+# dx,dy = probDescription.dx, probDescription.dy
+# dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
+# probDescription.set_dt(dt)
+# error_lid_driven_cavity_FE (steps = 2000)
