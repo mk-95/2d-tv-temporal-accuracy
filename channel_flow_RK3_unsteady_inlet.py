@@ -24,10 +24,10 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
     # initialize velocities - we stagger everything in the negative direction. A scalar cell owns its minus face, only.
     # Then, for example, the u velocity field has a ghost cell at x0 - dx and the plus ghost cell at lx
     np.random.seed(123)
-    u0 = np.random.rand(ny + 2, nx + 2) / 100000  # include ghost cells
+    u0 = np.random.rand(ny + 2, nx + 2) / 1000000  # include ghost cells
     # u0 = np.ones([ny +2, nx+2])# include ghost cells
     # same thing for the y-velocity component
-    v0 = np.random.rand(ny + 2, nx + 2) / 100000  # include ghost cells
+    v0 = np.random.rand(ny + 2, nx + 2) / 1000000  # include ghost cells
     # v0 = np.ones([ny +2, nx+2])  # include ghost cells
 
     at = lambda t: (np.pi / 6) * np.sin(t / 2)
