@@ -48,10 +48,10 @@ Uinlet = 1
 probDescription = ProbDescription(N=[4*8,8],L=[4,1],μ =ν,dt = 0.05)
 dx,dy = probDescription.dx, probDescription.dy
 dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
-probDescription.set_dt(dt/2)
+probDescription.set_dt(dt/4)
 
 
-levels = 8        # total number of refinements
+levels = 7        # total number of refinements
 
 rx = 1
 ry = 1
@@ -86,14 +86,13 @@ for dt, nsteps in zip(dts, timesteps):
 
     # RK2 channel flow
     # -----------------
-    # e, divs, _, phi =error_channel_flow_RK2(steps = nsteps,name='midpoint',guess='first',project=[0])
-    # e, divs, _, phi = error_channel_flow_RK2_unsteady_inlet(steps=nsteps, name='heun', guess='first', project=[0])
+    # e, divs, _, phi =error_channel_flow_RK2(steps = nsteps,name='theta',guess='first',project=[0],theta=0.25)
+    e, divs, _, phi = error_channel_flow_RK2_unsteady_inlet(steps=nsteps, name='theta', guess='first', project=[0],theta=0.25)
 
     # RK3 channel flow
     # -----------------
     # e, divs, _, phi = error_channel_flow_RK3(steps=nsteps, name='heun', guess=None, project=[1,1])
-    e, divs, _, phi = error_channel_flow_RK3_unsteady_inlet(steps=nsteps, name='regular', guess='second',
-                                                            project=[0, 1])
+    # e, divs, _, phi = error_channel_flow_RK3_unsteady_inlet(steps=nsteps, name='regular', guess='second',project=[0, 1])
 
     # lid driven cavity
     #-------------------

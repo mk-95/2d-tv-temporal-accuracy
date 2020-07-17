@@ -5,7 +5,7 @@ import singleton_classes as sc
 import statistics
 import matplotlib.pyplot as plt
 
-def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess=None, project=[],alpha=0.99):
+def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess=None, project=[],theta=None):
     probDescription = sc.ProbDescription()
     f = func(probDescription)
     dt = probDescription.get_dt()
@@ -88,7 +88,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
         print('timestep:{}'.format(count + 1))
         print('-----------')
         # rk coefficients
-        RK2 = sc.RK2(name)
+        RK2 = sc.RK2(name,theta)
         a21 = RK2.a21
         b1 = RK2.b1
         b2 = RK2.b2
@@ -233,4 +233,4 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
 # dx,dy = probDescription.dx, probDescription.dy
 # dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
 # probDescription.set_dt(dt)
-# error_channel_flow_RK2 (steps = 1,return_stability=False, name='midpoint', guess=None, project=[1],alpha=0.99)
+# error_channel_flow_RK2 (steps = 1,return_stability=False, name='midpoint', guess=None, project=[1],theta=None)
