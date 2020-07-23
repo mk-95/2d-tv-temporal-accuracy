@@ -28,9 +28,13 @@ from channel_flow_RK3_unsteady_inlet import error_channel_flow_RK3_unsteady_inle
 
 from normal_velocity_bcs import error_normal_velocity_bcs_RK2
 
+from taylor_vortex_with_time_dependent_bcs import error_tv_time_dependent_bcs_FE
+from taylor_vortex_with_time_dependent_bcs_RK2 import error_tv_time_dependent_bcs_RK2
+from taylor_vortex_with_time_dependent_bcs_RK3 import error_tv_time_dependent_bcs_RK3
+
 # taylor vortex
 #---------------
-# probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
+probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
 
 # lid-driven-cavity
 #-------------------
@@ -43,12 +47,12 @@ from normal_velocity_bcs import error_normal_velocity_bcs_RK2
 
 # channel flow
 #--------------
-ν = 0.1
-Uinlet = 1
-probDescription = ProbDescription(N=[4*8,8],L=[4,1],μ =ν,dt = 0.05)
-dx,dy = probDescription.dx, probDescription.dy
-dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
-probDescription.set_dt(dt/4)
+# ν = 0.1
+# Uinlet = 1
+# probDescription = ProbDescription(N=[4*8,8],L=[4,1],μ =ν,dt = 0.05)
+# dx,dy = probDescription.dx, probDescription.dy
+# dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
+# probDescription.set_dt(dt/4)
 
 
 levels = 7        # total number of refinements
@@ -87,7 +91,7 @@ for dt, nsteps in zip(dts, timesteps):
     # RK2 channel flow
     # -----------------
     # e, divs, _, phi =error_channel_flow_RK2(steps = nsteps,name='theta',guess='first',project=[0],theta=0.25)
-    e, divs, _, phi = error_channel_flow_RK2_unsteady_inlet(steps=nsteps, name='theta', guess='first', project=[0],theta=0.25)
+    # e, divs, _, phi = error_channel_flow_RK2_unsteady_inlet(steps=nsteps, name='theta', guess='first', project=[0],theta=0.25)
 
     # RK3 channel flow
     # -----------------
@@ -103,6 +107,9 @@ for dt, nsteps in zip(dts, timesteps):
     #-----------------
     # e, divs, _, phi =error_normal_velocity_bcs_RK2(steps = nsteps,name='theta',guess=None,project=[1],theta=0.1)
 
+    # e, divs, _, phi = error_tv_time_dependent_bcs_FE(steps=nsteps)
+    # e, divs, _, phi =error_tv_time_dependent_bcs_RK2(steps = nsteps,name='theta',guess='first',project=[0],theta=0.25)
+    e, divs, _, phi =error_tv_time_dependent_bcs_RK3(steps = nsteps,name='heun',guess='second',project=[0,0])
 
     phiAll.append(phi)
 # local errors
