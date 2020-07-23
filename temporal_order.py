@@ -22,19 +22,28 @@ from channel_flow_RK3_unsteady_inlet import error_channel_flow_RK3_unsteady_inle
 
 
 from normal_velocity_bcs import error_normal_velocity_bcs_RK2
+from normal_velocity_bcs_RK3 import error_normal_velocity_bcs_RK3
+
+from taylor_vortex_with_time_dependent_bcs_RK2 import error_tv_time_dependent_bcs_RK2
+from taylor_vortex_with_time_dependent_bcs_RK3 import error_tv_time_dependent_bcs_RK3
 
 
-# channel flow
-#--------------
-ν = 0.1
-Uinlet = 1
-probDescription = ProbDescription(N=[4*8,8],L=[4,1],μ =ν,dt = 0.05)
-dx,dy = probDescription.dx, probDescription.dy
-dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
-probDescription.set_dt(dt/4)
+# taylor vortex
+#---------------
+probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
 
 
-levels = 7        # total number of refinements
+# # channel flow
+# #--------------
+# ν = 0.1
+# Uinlet = 1
+# probDescription = ProbDescription(N=[4*32,32],L=[4,1],μ =ν,dt = 0.05)
+# dx,dy = probDescription.dx, probDescription.dy
+# dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
+# probDescription.set_dt(dt/4)
+
+
+levels = 8        # total number of refinements
 
 rx = 1
 ry = 1
@@ -44,24 +53,44 @@ dts = [probDescription.get_dt()/rt**i for i in range(0,levels)]
 
 timesteps = [5*rt**i for i in range(0,levels) ]
 
-# RK2 integrators
+# to run multiple cases
+#========================
+#RK2 integrators
 #-----------------
-# stages_projections = [[0],[0],[1]]
-# guesses = [None,'first',None]
-# keys = ['RK20*','RK20','RK21']
-# integrator_name = 'heun'
-# theta = None
-
-# RK3 integrators
-#-----------------
-stages_projections = [[0,0],[0,0],[0,0],[0,1],[1,0],[1,1]]
-guesses = [None,'first','second','second','second',None]
-keys = ['RK300*','RK300**','RK300','RK301','RK310','RK311']
+stages_projections = [[0],[0],[1]]
+guesses = [None,'first',None]
+keys = ['RK20*','RK20','RK21']
 integrator_name = 'heun'
 theta = None
 
-file_name = 'channel_flow_unsteady_inlet_RK3.json'
-directory = './temporal_orders/'
+# # RK3 integrators
+# #-----------------
+# stages_projections = [[0,0],[0,0],[0,0],[0,1],[1,0],[1,1]]
+# guesses = [None,'first','second','second','second',None]
+# keys = ['RK300*','RK300**','RK300','RK301','RK310','RK311']
+# integrator_name = 'heun'
+# theta = None
+
+# to run single case
+#========================
+# # RK2 integrator
+# #----------------
+# stages_projections = [[1]]
+# guesses = [None]
+# keys = ['RK21']
+# integrator_name = 'heun'
+# theta = None
+
+# # RK3 integrator
+# #----------------
+# stages_projections = [[1,1]]
+# guesses = [None]
+# keys = ['RK311']
+# integrator_name = 'heun'
+# theta = None
+
+file_name = 'tv_unsteady_bcs_{}.json'.format('RK2')
+directory = './temporal_orders/taylor_vortex_unsteady_bcs/'
 
 dict = {}
 for proj, guess, key in zip(stages_projections,guesses,keys):
@@ -88,7 +117,7 @@ for proj, guess, key in zip(stages_projections,guesses,keys):
         # RK3 channel flow
         # -----------------
         # e, divs, _, phi = error_channel_flow_RK3(steps = nsteps,name=integrator_name,guess=guess,project=proj)
-        e, divs, _, phi = error_channel_flow_RK3_unsteady_inlet(steps = nsteps,name=integrator_name,guess=guess,project=proj)
+        # e, divs, _, phi = error_channel_flow_RK3_unsteady_inlet(steps = nsteps,name=integrator_name,guess=guess,project=proj)
 
         # lid driven cavity
         #-------------------
@@ -97,8 +126,13 @@ for proj, guess, key in zip(stages_projections,guesses,keys):
 
         # Poisseille flow
         #-----------------
-        # e, divs, _, phi =error_normal_velocity_bcs_RK2(steps = nsteps,name='theta',guess=None,project=[1],theta=0.1)
+        # e, divs, _, phi =error_normal_velocity_bcs_RK2(steps = nsteps,name=integrator_name,guess=guess,project=proj)
+        # e, divs, _, phi =error_normal_velocity_bcs_RK3(steps = nsteps,name=integrator_name,guess=guess,project=proj)
 
+        # unsteady boundary conditions taylor vortex
+        #-------------------------------------------
+        e, divs, _, phi = error_tv_time_dependent_bcs_RK2(steps=nsteps,name=integrator_name,guess=guess,project=proj,theta=theta)
+        # e, divs, _, phi = error_tv_time_dependent_bcs_RK3(steps=nsteps,name=integrator_name,guess=guess,project=proj)
 
         phiAll.append(phi)
 
