@@ -4,6 +4,17 @@ import time
 import singleton_classes as sc
 import statistics
 import matplotlib.pyplot as plt
+from mpl_toolkits import axes_grid1
+
+def add_colorbar(im, aspect=20, pad_fraction=0.5, **kwargs):
+    """Add a vertical color bar to an image plot."""
+    divider = axes_grid1.make_axes_locatable(im.axes)
+    width = axes_grid1.axes_size.AxesY(im.axes, aspect=1. / aspect)
+    pad = axes_grid1.axes_size.Fraction(pad_fraction, width)
+    current_ax = plt.gca()
+    cax = divider.append_axes("right", size=width, pad=pad)
+    plt.sca(current_ax)
+    return im.axes.figure.colorbar(im, cax=cax, **kwargs)
 
 def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess=None, project=[],theta=None):
     probDescription = sc.ProbDescription()
@@ -24,20 +35,25 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
     # initialize velocities - we stagger everything in the negative direction. A scalar cell owns its minus face, only.
     # Then, for example, the u velocity field has a ghost cell at x0 - dx and the plus ghost cell at lx
     np.random.seed(123)
-    u0 = np.random.rand(ny + 2, nx + 2)/10000  # include ghost cells
-    # u0 = np.ones([ny +2, nx+2])# include ghost cells
+    mag = 0
+    u0 = np.random.rand(ny + 2, nx + 2)*mag - 0.5*mag # include ghost cells
+    # u0 = np.zeros([ny +2, nx+2])# include ghost cells
     # same thing for the y-velocity component
-    v0 = np.random.rand(ny + 2, nx + 2)/10000  # include ghost cells
-    # v0 = np.ones([ny +2, nx+2])  # include ghost cells
+    v0 = np.random.rand(ny + 2, nx + 2)*mag -0.5*mag # include ghost cells
+    # v0 = np.zeros([ny +2, nx+2])  # include ghost cells
+
+    Min = np.sum(np.ones_like(u0[1:ny + 1, 1]))
 
     u_bc_top_wall = lambda xv: 0
     u_bc_bottom_wall = lambda xv: 0
     u_bc_right_wall = lambda u: lambda yv: u
+    u_bc_right_wall_IC = lambda yv: 8 * (yu[:ny + 1, 1] - yu[:ny + 1, 1] ** 2) * Min / np.sum(
+        8 * (yu[:ny + 1, 1] - yu[:ny + 1, 1] ** 2))
     u_bc_left_wall = lambda yv: 1
 
     v_bc_top_wall = lambda xv: 0
     v_bc_bottom_wall = lambda xv: 0
-    v_bc_right_wall = lambda yv: 0
+    v_bc_right_wall = lambda v:lambda yv: v
     v_bc_left_wall = lambda yv: 0
 
     # pressure
@@ -49,7 +65,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
     # apply bcs
     f.top_wall(u0, v0, u_bc_top_wall, v_bc_top_wall)
     f.bottom_wall(u0, v0, u_bc_bottom_wall, v_bc_bottom_wall)
-    f.right_wall(u0, v0, u_bc_right_wall(u0[1:-1, -1]), v_bc_right_wall)
+    f.right_wall(u0, v0, u_bc_right_wall(u0[1:-1, -2]), v_bc_right_wall(v0[1:,-1]))
     f.left_wall(u0, v0, u_bc_left_wall, v_bc_left_wall)
 
     Coef = f.A_channel_flow()
@@ -58,10 +74,8 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
 
     f.top_wall(u0_free, v0_free, u_bc_top_wall, v_bc_top_wall)
     f.bottom_wall(u0_free, v0_free, u_bc_bottom_wall, v_bc_bottom_wall)
-    f.right_wall(u0_free, v0_free, u_bc_right_wall(u0_free[1:-1, -1]), v_bc_right_wall)
+    f.right_wall(u0_free, v0_free, u_bc_right_wall(u0_free[1:-1, -1]), v_bc_right_wall(v0_free[1:,-2]))
     f.left_wall(u0_free, v0_free, u_bc_left_wall, v_bc_left_wall)
-
-    print('div_u0=', np.linalg.norm(f.div(u0_free, v0_free).ravel()))
 
     # initialize the pressure
     p0 = np.zeros([nx+2,ny+2]); # include ghost cells
@@ -75,10 +89,12 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
     usol=[]
     # usol.append(u0)
     usol.append(u0_free)
-
+    # usol.append(u_FE)
+    #
     vsol=[]
     # vsol.append(v0)
     vsol.append(v0_free)
+    # vsol.append(v_FE)
 
     psol = []
     psol.append(p0)
@@ -119,7 +135,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
         # apply boundary conditions before the computation of the rhs
         f.top_wall(u1, v1, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(u1, v1, u_bc_bottom_wall, v_bc_bottom_wall)
-        f.right_wall(u1, v1, u_bc_right_wall(u1[1:-1, -1]), v_bc_right_wall)  # this won't change anything for u2
+        f.right_wall(u1, v1, u_bc_right_wall(u1[1:-1, -1]), v_bc_right_wall(v1[1:,-2]))  # this won't change anything for u2
         f.left_wall(u1, v1, u_bc_left_wall, v_bc_left_wall)
 
         urhs1 = f.urhs_bcs(u1, v1)
@@ -136,7 +152,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
 
         f.top_wall(uh2, vh2, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(uh2, vh2, u_bc_bottom_wall, v_bc_bottom_wall)
-        f.right_wall(uh2, vh2, u_bc_right_wall(uh2[1:-1, -2]), v_bc_right_wall)  # this won't change anything for u2
+        f.right_wall(uh2, vh2, u_bc_right_wall(uh2[1:-1, -2]), v_bc_right_wall(vh2[1:,-1]))  # this won't change anything for u2
         f.left_wall(uh2, vh2, u_bc_left_wall, v_bc_left_wall)
 
         if d2 == 1:
@@ -150,7 +166,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
         # apply bcs
         f.top_wall(u2, v2, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(u2, v2, u_bc_bottom_wall, v_bc_bottom_wall)
-        f.right_wall(u2, v2, u_bc_right_wall(u2[1:-1, -1]), v_bc_right_wall) # this won't change anything for u2
+        f.right_wall(u2, v2, u_bc_right_wall(u2[1:-1, -1]), v_bc_right_wall(v2[1:,-2])) # this won't change anything for u2
         f.left_wall(u2, v2, u_bc_left_wall, v_bc_left_wall)
 
 
@@ -164,7 +180,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
 
         f.top_wall(uhnp1, vhnp1, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(uhnp1, vhnp1, u_bc_bottom_wall, v_bc_bottom_wall)
-        f.right_wall(uhnp1, vhnp1, u_bc_right_wall(uhnp1[1:-1, -2]), v_bc_right_wall)  # this won't change anything for u2
+        f.right_wall(uhnp1, vhnp1, u_bc_right_wall(uhnp1[1:-1, -2]), v_bc_right_wall(vhnp1[1:,-1]))  # this won't change anything for u2
         f.left_wall(uhnp1, vhnp1, u_bc_left_wall, v_bc_left_wall)
 
         unp1, vnp1, press, iter2 = f.ImQ_bcs(uhnp1, vhnp1, Coef, pn,p_bcs)
@@ -172,7 +188,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
         # apply bcs
         f.top_wall(unp1, vnp1, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(unp1, vnp1, u_bc_bottom_wall, v_bc_bottom_wall)
-        f.right_wall(unp1, vnp1, u_bc_right_wall(unp1[1:-1, -1]), v_bc_right_wall) # this won't change anything for unp1
+        f.right_wall(unp1, vnp1, u_bc_right_wall(unp1[1:-1, -1]), v_bc_right_wall(vnp1[1:,-2])) # this won't change anything for unp1
         f.left_wall(unp1, vnp1, u_bc_left_wall, v_bc_left_wall)
 
         time_end = time.clock()
@@ -201,7 +217,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
 
         # plot of the pressure gradient in order to make sure the solution is correct
         # # plt.contourf(usol[-1][1:-1,1:])
-        # if count % 10 ==0:
+        # if count % 1 ==0:
         #     # divu = f.div(u0_free,v0_free)
         #     # plt.imshow(divu[1:-1,1:-1], origin='bottom')
         #     # plt.colorbar()
@@ -233,4 +249,4 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
 # dx,dy = probDescription.dx, probDescription.dy
 # dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
 # probDescription.set_dt(dt)
-# error_channel_flow_RK2 (steps = 1,return_stability=False, name='midpoint', guess=None, project=[1],theta=None)
+# error_channel_flow_RK2 (steps = 1,return_stability=False, name='heun', guess=None, project=[1])

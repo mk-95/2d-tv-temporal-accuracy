@@ -10,10 +10,11 @@ from singleton_classes import ProbDescription
 
 # from error_func_RK2 import error_RK2
 # from error_func_RK3 import error_RK3
-# from error_func_RK4 import error_RK4
+from error_func_RK4 import error_RK4
 
 from lid_driven_cavity_FE import error_lid_driven_cavity_FE
 from lid_driven_cavity_RK2 import error_lid_driven_cavity_RK2
+from lid_driven_cavity_RK3 import error_lid_driven_cavity_RK3
 # from lid_driven_cavity_RK3 import error_lid_driven_cavity_RK3
 
 # from channel_flow_FE import error_channel_flow_FE
@@ -32,9 +33,11 @@ from taylor_vortex_with_time_dependent_bcs import error_tv_time_dependent_bcs_FE
 from taylor_vortex_with_time_dependent_bcs_RK2 import error_tv_time_dependent_bcs_RK2
 from taylor_vortex_with_time_dependent_bcs_RK3 import error_tv_time_dependent_bcs_RK3
 
-# taylor vortex
-#---------------
-probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
+from channel_flow_RK4 import error_channel_flow_RK4
+
+# # taylor vortex
+# #---------------
+# probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
 
 # lid-driven-cavity
 #-------------------
@@ -46,13 +49,13 @@ probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
 # probDescription.set_dt(dt/4)
 
 # channel flow
-#--------------
-# ν = 0.1
-# Uinlet = 1
-# probDescription = ProbDescription(N=[4*8,8],L=[4,1],μ =ν,dt = 0.05)
-# dx,dy = probDescription.dx, probDescription.dy
-# dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
-# probDescription.set_dt(dt/4)
+# --------------
+ν = 0.1
+Uinlet = 1
+probDescription = ProbDescription(N=[4*8,8],L=[4,1],μ =ν,dt = 0.05)
+dx,dy = probDescription.dx, probDescription.dy
+dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
+probDescription.set_dt(dt/4)
 
 
 levels = 7        # total number of refinements
@@ -90,7 +93,7 @@ for dt, nsteps in zip(dts, timesteps):
 
     # RK2 channel flow
     # -----------------
-    # e, divs, _, phi =error_channel_flow_RK2(steps = nsteps,name='theta',guess='first',project=[0],theta=0.25)
+    # e, divs, _, phi =error_channel_flow_RK2(steps = nsteps,name='theta',guess='first',project=[1],theta=0.25)
     # e, divs, _, phi = error_channel_flow_RK2_unsteady_inlet(steps=nsteps, name='theta', guess='first', project=[0],theta=0.25)
 
     # RK3 channel flow
@@ -98,10 +101,15 @@ for dt, nsteps in zip(dts, timesteps):
     # e, divs, _, phi = error_channel_flow_RK3(steps=nsteps, name='heun', guess=None, project=[1,1])
     # e, divs, _, phi = error_channel_flow_RK3_unsteady_inlet(steps=nsteps, name='regular', guess='second',project=[0, 1])
 
+    # RK4 channel flow
+    # -----------------
+    # e, divs, _, phi = error_channel_flow_RK4(steps=nsteps, name='regular', guess='third', project=[0,0,0])
+    # e, divs, _, phi = error_channel_flow_RK4_unsteady_inlet(steps=nsteps, name='regular', guess='second',project=[0, 1])
+
     # lid driven cavity
     #-------------------
     # e, divs, _, phi =error_lid_driven_cavity_RK2(steps = nsteps,name='heun',guess=None,project=[1])
-    # e, divs, _, phi = error_lid_driven_cavity_RK3(steps=nsteps, name='heun', guess=None, project=[1,1])
+    e, divs, _, phi = error_lid_driven_cavity_RK3(steps=nsteps, name='heun', guess=None, project=[1,1])
 
     # Poisseille flow
     #-----------------
@@ -109,7 +117,7 @@ for dt, nsteps in zip(dts, timesteps):
 
     # e, divs, _, phi = error_tv_time_dependent_bcs_FE(steps=nsteps)
     # e, divs, _, phi =error_tv_time_dependent_bcs_RK2(steps = nsteps,name='theta',guess='first',project=[0],theta=0.25)
-    e, divs, _, phi =error_tv_time_dependent_bcs_RK3(steps = nsteps,name='heun',guess='second',project=[0,0])
+    # e, divs, _, phi =error_tv_time_dependent_bcs_RK3(steps = nsteps,name='heun',guess='second',project=[0,0])
 
     phiAll.append(phi)
 # local errors

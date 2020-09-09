@@ -23,7 +23,9 @@ def error_lid_driven_cavity_RK2 (steps = 3,return_stability=False, name='heun', 
 
     # initialize velocities - we stagger everything in the negative direction. A scalar cell owns its minus face, only.
     # Then, for example, the u velocity field has a ghost cell at x0 - dx and the plus ghost cell at lx
-    u0 = np.zeros([ny+2, nx + 2]) # include ghost cells
+    np.random.seed(123)
+    u0 = np.random.rand(ny+2, nx + 2)# include ghost cells
+    # u0 = np.ones([ny +2, nx+2])# include ghost cells
     # same thing for the y-velocity component
     v0 = np.zeros([ny +2, nx+2]) # include ghost cells
 
@@ -45,6 +47,17 @@ def error_lid_driven_cavity_RK2 (steps = 3,return_stability=False, name='heun', 
     f.right_wall(u0,v0,u_bc_right_wall,v_bc_right_wall)
     f.left_wall(u0,v0,u_bc_left_wall,v_bc_left_wall)
 
+    Coef = f.A_Lid_driven_cavity()
+
+    # to make the initial condition divergence free.
+    u0_free, v0_free,_,_ = f.ImQ_bcs(u0,v0,Coef,0,p_bcs)
+
+    f.top_wall(u0_free, v0_free, u_bc_top_wall, v_bc_top_wall)
+    f.bottom_wall(u0_free, v0_free, u_bc_bottom_wall, v_bc_bottom_wall)
+    f.right_wall(u0_free, v0_free, u_bc_right_wall, v_bc_right_wall)
+    f.left_wall(u0_free, v0_free, u_bc_left_wall, v_bc_left_wall)
+
+    print('div_u0=', np.linalg.norm(f.div(u0_free,v0_free).ravel()))
 
     # initialize the pressure
     p0 = np.zeros([nx+2,ny+2]); # include ghost cells
@@ -56,15 +69,15 @@ def error_lid_driven_cavity_RK2 (steps = 3,return_stability=False, name='heun', 
     div_np1= np.zeros_like(p0)
     # a bunch of lists for animation purposes
     usol=[]
-    usol.append(u0)
+    usol.append(u0_free)
 
     vsol=[]
-    vsol.append(v0)
+    vsol.append(v0_free)
 
     psol = []
     psol.append(p0)
     iterations = [0]
-    Coef = f.A_Lid_driven_cavity()
+
 
     while count < tend:
         print('timestep:{}'.format(count + 1))

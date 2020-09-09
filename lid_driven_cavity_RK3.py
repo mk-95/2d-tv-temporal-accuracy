@@ -45,6 +45,17 @@ def error_lid_driven_cavity_RK3 (steps = 3,return_stability=False, name='regular
     f.right_wall(u0,v0,u_bc_right_wall,v_bc_right_wall)
     f.left_wall(u0,v0,u_bc_left_wall,v_bc_left_wall)
 
+    Coef = f.A_Lid_driven_cavity()
+
+    # to make the initial condition divergence free.
+    u0_free, v0_free, _, _ = f.ImQ_bcs(u0, v0, Coef, 0, p_bcs)
+
+    f.top_wall(u0_free, v0_free, u_bc_top_wall, v_bc_top_wall)
+    f.bottom_wall(u0_free, v0_free, u_bc_bottom_wall, v_bc_bottom_wall)
+    f.right_wall(u0_free, v0_free, u_bc_right_wall, v_bc_right_wall)
+    f.left_wall(u0_free, v0_free, u_bc_left_wall, v_bc_left_wall)
+
+    print('div_u0=', np.linalg.norm(f.div(u0_free, v0_free).ravel()))
 
     # initialize the pressure
     p0 = np.zeros([nx+2,ny+2]); # include ghost cells
@@ -56,15 +67,14 @@ def error_lid_driven_cavity_RK3 (steps = 3,return_stability=False, name='regular
     div_np1= np.zeros_like(p0)
     # a bunch of lists for animation purposes
     usol=[]
-    usol.append(u0)
+    usol.append(u0_free)
 
     vsol=[]
-    vsol.append(v0)
+    vsol.append(v0_free)
 
     psol = []
     psol.append(p0)
     iterations = [0]
-    Coef = f.A_Lid_driven_cavity()
 
     while count < tend:
         RK3 = sc.RK3(name)
