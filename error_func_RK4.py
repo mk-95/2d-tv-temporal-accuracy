@@ -198,6 +198,13 @@ def error_RK4 (steps = 3,return_stability=False,name='regular',guess=None,projec
 
         unp1,vnp1,press,iter3= f.ImQ(uhnp1,vhnp1,Coef,pn)
         time_end = time.clock()
+
+        # post processing projection
+        unp1r = dt * f.urhs(unp1, vnp1)
+        vnp1r = dt * f.vrhs(unp1, vnp1)
+
+        # _, _, press, _ = f.ImQ_post_processing(unp1r, vnp1r, Coef, pn)
+
         psol.append(press)
         cpu_time = time_end - time_start
         print('cpu_time=',cpu_time)
@@ -259,4 +266,5 @@ def error_RK4 (steps = 3,return_stability=False,name='regular',guess=None,projec
 
     else:
         return diff, [div_n,div2,div3,div_np1], is_stable, unp1[1:-1,1:].ravel()
+        # return diff, [div_n,div2,div3,div_np1], is_stable, press[1:-1,1:].ravel()
         # return diff, [div_n,div2,div3,div_np1], is_stable, f2x[1:-1,1:].ravel() # return the pressure to see if it is indeed 4rd order accurate locally (3rd order globally)
