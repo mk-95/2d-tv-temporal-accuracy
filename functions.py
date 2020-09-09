@@ -590,18 +590,16 @@ class func:
             f3x = np.zeros_like(Gpnx)
             f3y = np.zeros_like(Gpny)
 
-            if order == 'third':
+            if order == 'post-processing-approx':
                 dt = self.probDescription.get_dt()
-                Pnx = (15 * Gpnx - 10 * Gpnm1x + 3 * Gpnm2x) / 8
-                # Pnx = Gpnx +  (Gpnx - Gpnm1x)/2
-                # Pnx = Gpnx
-                Pny = (15 * Gpny - 10 * Gpnm1y + 3 * Gpnm2y) / 8
-                # Pny = Gpny +  (Gpny - Gpnm1y)/2
-                # Pny = Gpny
-                Pnx_p = (2 * Gpnx - 3 * Gpnm1x + Gpnm2x)/dt  # Pnx'
-                Pny_p = (2 * Gpny - 3 * Gpnm1y + Gpnm2y)/dt  # Pny'
-                Pnx_pp = (Gpnx - 2 * Gpnm1x + Gpnm2x) / 2 /dt/dt  # Pnx''
-                Pny_pp = (Gpny - 2 * Gpnm1y + Gpnm2y) / 2 /dt/dt # Pny''
+                Pnx = Gpnx
+                Pny = Gpny
+
+                Pnx_p = (3*Gpnx - 4*Gpnm1x +Gpnm2x)/2/dt # Pnx'
+                Pny_p =(3*Gpny - 4*Gpnm1y +Gpnm2y)/2/dt  # Pny'
+
+                Pnx_pp = (Gpnx - 2*Gpnm1x + Gpnm2x) / dt /dt # Pnx'
+                Pny_pp = (Gpny - 2*Gpnm1y + Gpnm2y) / dt /dt # Pny'
 
                 f1x = Pnx
                 f1y = Pny
@@ -613,22 +611,18 @@ class func:
                 f3y = Pny + (a31 + a32) * dt * Pny_p + a32 * a21 * dt*dt* Pny_pp
 
 
-            elif order =='fourth':
+            elif order =='third':
                 dt = self.probDescription.get_dt()
-                pnm3 = pold[3]
-                Gpnm3x = self.Gpx(pnm3)
-                Gpnm3y = self.Gpy(pnm3)
-
-                Pnx = (35 * Gpnx - 35 * Gpnm1x + 21 * Gpnm2x - 5*Gpnm3x) / 16
-                # Pnx = Gpnx +  (Gpnx - Gpnm1x)/2
+                # Pnx = (15 * Gpnx - 10 * Gpnm1x + 3 * Gpnm2x) / 8
+                Pnx = Gpnx +  (Gpnx - Gpnm1x)/2
                 # Pnx = Gpnx
-                Pny = (35 * Gpny - 35 * Gpnm1y + 21 * Gpnm2y- 5*Gpnm3y) / 16
-                # Pny = Gpny +  (Gpny - Gpnm1y)/2
+                # Pny = (15 * Gpny - 10 * Gpnm1y + 3 * Gpnm2y) / 8
+                Pny = Gpny +  (Gpny - Gpnm1y)/2
                 # Pny = Gpny
-                Pnx_p = (71 * Gpnx - 141 * Gpnm1x + 93*Gpnm2x -23*Gpnm3x) / dt /24  # Pnx'
-                Pny_p = (71 * Gpny - 141 * Gpnm1y + 93*Gpnm2y -23*Gpnm3y) / dt /24 # Pny'
-                Pnx_pp = (5*Gpnx - 13 * Gpnm1x + 11*Gpnm2x -3*Gpnm3x) / 4 / dt / dt  # Pnx''
-                Pny_pp = (5*Gpny - 13 * Gpnm1y + 11*Gpnm2y -3*Gpnm3y) / 4 / dt / dt  # Pny''
+                Pnx_p = (2 * Gpnx - 3 * Gpnm1x + Gpnm2x) / dt  # Pnx'  # from lagrange polynomial jupyter notebook
+                Pny_p = (2 * Gpny - 3 * Gpnm1y + Gpnm2y) / dt  # Pny'
+                Pnx_pp = (Gpnx - 2 * Gpnm1x + Gpnm2x) / 2 / dt / dt  # Pnx''
+                Pny_pp = (Gpny - 2 * Gpnm1y + Gpnm2y) / 2 / dt / dt  # Pny''
 
                 f1x = Pnx
                 f1y = Pny
