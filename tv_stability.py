@@ -12,11 +12,13 @@ tend = 100000
 U = 1.42
 n = 15
 Res = [i for i in np.logspace(-1,2,n)]
+# Res = [0.5]
 def run_fname():
     nsteps = int(tend/probDescription.get_dt())
     # here add your scheme:
     #------------------------
-    is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess='first', project=[0],alpha=0.999)
+    is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess=None, project=[1],alpha=0.999)
+    # is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess='first', project=[0],alpha=0.999)
 
 
     print('is_stable = {}'.format(is_stable))
@@ -44,6 +46,7 @@ def bisect_CFL(CFLs,mu,old_CFL_low=0,old_is_stable_low=0,tol=1e-2):
     diff = CFL_H-CFL_L
     midpoint = (CFL_L+CFL_H)/2
 
+    probDescription.set_mu(mu)
     probDescription.set_dt(dt_low)
     is_stable_low = run_fname() if old_CFL_low!=CFL_L else old_is_stable_low
     probDescription.set_dt(dt_high)
@@ -78,7 +81,7 @@ integ = "RK21"
 for Re in Res:
     CFL_max,CFL_min = (4,0.1)
     dx = 1/32
-    mu = U*dx/1.0
+    mu = U*dx/Re
     CFL,err,stable_low, stable_high = bisect_CFL([CFL_max,CFL_min],mu)
     with open("{}-stability.txt".format(integ), "a") as myfile:
         myfile.write("{},{},{},{},{}".format(CFL,Re,err,stable_low, stable_high))

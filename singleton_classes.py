@@ -62,6 +62,9 @@ class ProbDescription:
     def get_mu(self):
         return self.μ
 
+    def set_mu(self,val):
+        self.μ = val
+
     def set_dt(self, dt):
         self.dt = dt
 
