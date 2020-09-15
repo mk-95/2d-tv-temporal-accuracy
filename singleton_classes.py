@@ -22,6 +22,9 @@ class ProbDescription:
         self.μ = μ
         self.dt = dt
 
+        self.dt_post_processing = None
+        self.coef = None
+
         # cell centered coordinates
         xx = np.linspace(self.dx / 2.0, self.lx - self.dx / 2.0, self.nx, endpoint=True)
         yy = np.linspace(self.dy / 2.0, self.ly - self.dy / 2.0, self.ny, endpoint=True)
@@ -62,6 +65,10 @@ class ProbDescription:
     def set_dt(self, dt):
         self.dt = dt
 
+    def get_dt_post_processing(self):
+        return self.dt_post_processing
+    def set_dt_post_processing(self,dt):
+        self.dt_post_processing = dt
 
 @SingletonDecorator
 class RK2:

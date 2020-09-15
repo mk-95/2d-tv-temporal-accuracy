@@ -5,7 +5,7 @@ import singleton_classes as sc
 import statistics
 import matplotlib.pyplot as plt
 
-def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, name='heun', guess=None, project=[],alpha=0.99):
+def error_channel_flow_RK4 (steps = 3,return_stability=False, name='regular', guess=None, project=[],alpha=0.99):
     probDescription = sc.ProbDescription()
     f = func(probDescription)
     dt = probDescription.get_dt()
@@ -24,23 +24,21 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
     # initialize velocities - we stagger everything in the negative direction. A scalar cell owns its minus face, only.
     # Then, for example, the u velocity field has a ghost cell at x0 - dx and the plus ghost cell at lx
     np.random.seed(123)
-    u0 = np.random.rand(ny + 2, nx + 2) / 1000000  # include ghost cells
-    # u0 = np.ones([ny +2, nx+2])# include ghost cells
+    # u0 = np.random.rand(ny + 2, nx + 2)/1e7  # include ghost cells
+    u0 = np.zeros([ny +2, nx+2])# include ghost cells
     # same thing for the y-velocity component
-    v0 = np.random.rand(ny + 2, nx + 2) / 1000000  # include ghost cells
-    # v0 = np.ones([ny +2, nx+2])  # include ghost cells
-
-    at = lambda t: (np.pi / 6) * np.sin(t / 2)
+    # v0 = np.random.rand(ny + 2, nx + 2)/1e7  # include ghost cells
+    v0 = np.zeros([ny +2, nx+2])  # include ghost cells
 
     u_bc_top_wall = lambda xv: 0
     u_bc_bottom_wall = lambda xv: 0
     u_bc_right_wall = lambda u: lambda yv: u
-    u_bc_left_wall = lambda t: lambda yv: np.cos(at(t))
+    u_bc_left_wall = lambda yv: 1
 
     v_bc_top_wall = lambda xv: 0
     v_bc_bottom_wall = lambda xv: 0
     v_bc_right_wall = lambda yv: 0
-    v_bc_left_wall = lambda t: lambda yv: np.sin(at(t))
+    v_bc_left_wall = lambda yv: 0
 
     # pressure
     def pressure_right_wall(p):
@@ -52,7 +50,7 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
     f.top_wall(u0, v0, u_bc_top_wall, v_bc_top_wall)
     f.bottom_wall(u0, v0, u_bc_bottom_wall, v_bc_bottom_wall)
     f.right_wall(u0, v0, u_bc_right_wall(u0[1:-1, -1]), v_bc_right_wall)
-    f.left_wall(u0, v0, u_bc_left_wall(t), v_bc_left_wall(t))
+    f.left_wall(u0, v0, u_bc_left_wall, v_bc_left_wall)
 
     Coef = f.A_channel_flow()
 
@@ -61,7 +59,7 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
     f.top_wall(u0_free, v0_free, u_bc_top_wall, v_bc_top_wall)
     f.bottom_wall(u0_free, v0_free, u_bc_bottom_wall, v_bc_bottom_wall)
     f.right_wall(u0_free, v0_free, u_bc_right_wall(u0_free[1:-1, -1]), v_bc_right_wall)
-    f.left_wall(u0_free, v0_free, u_bc_left_wall(t), v_bc_left_wall(t))
+    f.left_wall(u0_free, v0_free, u_bc_left_wall, v_bc_left_wall)
 
     print('div_u0=', np.linalg.norm(f.div(u0_free, v0_free).ravel()))
 
@@ -90,27 +88,36 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
         print('timestep:{}'.format(count + 1))
         print('-----------')
         # rk coefficients
-        RK3 = sc.RK3(name)
-        a21 = RK3.a21
-        a31 = RK3.a31
-        a32 = RK3.a32
-        b1 = RK3.b1
-        b2 = RK3.b2
-        b3 = RK3.b3
+        RK4 = sc.RK4(name)
+        a21 = RK4.a21
+        a31 = RK4.a31
+        a32 = RK4.a32
+        a41 = RK4.a41
+        a42 = RK4.a42
+        a43 = RK4.a43
+        b1 = RK4.b1
+        b2 = RK4.b2
+        b3 = RK4.b3
+        b4 = RK4.b4
         u = usol[-1].copy()
         v = vsol[-1].copy()
         pn = np.zeros_like(u)
         pnm1 = np.zeros_like(u)
-        if count > 2:
+        pnm2 = np.zeros_like(u)
+        pnm3 = np.zeros_like(u)
+        if count > 4:
             pn = psol[-1].copy()
             pnm1 = psol[-2].copy()
-            f1x, f1y, f2x, f2y = f.Guess([pn, pnm1], order=guess, integ='RK3', type=name)
-            d2,d3 = project
+            pnm2 = psol[-3].copy()
+            pnm3 = psol[-4].copy()
+            f1x, f1y, f2x, f2y, f3x, f3y = f.Guess([pn, pnm1,pnm2,pnm3], order=guess, integ='RK4', type=name)
+            d2,d3, d4 = project
 
-        elif count <= 2:  # compute pressures for 3 time steps
+        elif count <= 4:  # compute pressures for 3 time steps
             d2 = 1
             d3 = 1
-            f1x, f1y, f2x, f2y = f.Guess([pn, pnm1], order=None, integ='RK3', type=name)
+            d4 = 1
+            f1x, f1y, f2x, f2y, f3x, f3y = f.Guess([pn, pnm1,pnm2,pnm3], order=None, integ='RK4', type=name)
 
         ## stage 1
 
@@ -136,7 +143,7 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
         f.top_wall(uh2, vh2, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(uh2, vh2, u_bc_bottom_wall, v_bc_bottom_wall)
         f.right_wall(uh2, vh2, u_bc_right_wall(uh2[1:-1, -2]), v_bc_right_wall)  # this won't change anything for u2
-        f.left_wall(uh2, vh2, u_bc_left_wall(t+a21*dt), v_bc_left_wall(t+a21*dt))
+        f.left_wall(uh2, vh2, u_bc_left_wall, v_bc_left_wall)
 
         if d2 == 1:
             print('        pressure projection stage{} = True'.format(2))
@@ -150,7 +157,7 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
         f.top_wall(u2, v2, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(u2, v2, u_bc_bottom_wall, v_bc_bottom_wall)
         f.right_wall(u2, v2, u_bc_right_wall(u2[1:-1, -1]), v_bc_right_wall)  # this won't change anything for u2
-        f.left_wall(u2, v2, u_bc_left_wall(t+a21*dt), v_bc_left_wall(t+a21*dt))
+        f.left_wall(u2, v2, u_bc_left_wall, v_bc_left_wall)
 
         div2 = np.linalg.norm(f.div(u2, v2).ravel())
         print('        divergence of u2 = ', div2)
@@ -166,7 +173,7 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
         f.top_wall(uh3, vh3, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(uh3, vh3, u_bc_bottom_wall, v_bc_bottom_wall)
         f.right_wall(uh3, vh3, u_bc_right_wall(uh3[1:-1, -2]), v_bc_right_wall)  # this won't change anything for u2
-        f.left_wall(uh3, vh3, u_bc_left_wall(t+(a31+a32)*dt), v_bc_left_wall(t+(a31+a32)*dt))
+        f.left_wall(uh3, vh3, u_bc_left_wall, v_bc_left_wall)
 
         if d3 == 1:
             print('        pressure projection stage{} = True'.format(3))
@@ -180,21 +187,51 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
         f.top_wall(u3, v3, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(u3, v3, u_bc_bottom_wall, v_bc_bottom_wall)
         f.right_wall(u3, v3, u_bc_right_wall(u3[1:-1, -1]), v_bc_right_wall)  # this won't change anything for u2
-        f.left_wall(u3, v3, u_bc_left_wall(t+(a31+a32)*dt), v_bc_left_wall(t+(a31+a32)*dt))
+        f.left_wall(u3, v3, u_bc_left_wall, v_bc_left_wall)
 
         div3 = np.linalg.norm(f.div(u3, v3).ravel())
         print('        divergence of u3 = ', div3)
         urhs3 = f.urhs_bcs(u3, v3)
         vrhs3 = f.vrhs_bcs(u3, v3)
 
+        ## stage 4
+        print('    Stage 4:')
+        print('    --------')
+        uh4 = u + a41 * dt * (urhs1 - f1x) + a42 * dt * (urhs2 - f2x) + a43 * dt * (urhs3 - f3x)
+        vh4 = v + a41 * dt * (vrhs1 - f1y) + a42 * dt * (vrhs2 - f2y) + a43 * dt * (vrhs3 - f3y)
 
-        uhnp1 = u + dt * b1 * (urhs1) + dt * b2 * (urhs2) + dt * b3 * (urhs3)
-        vhnp1 = v + dt * b1 * (vrhs1) + dt * b2 * (vrhs2) + dt * b3 * (vrhs3)
+        f.top_wall(uh4, vh4, u_bc_top_wall, v_bc_top_wall)
+        f.bottom_wall(uh4, vh4, u_bc_bottom_wall, v_bc_bottom_wall)
+        f.right_wall(uh4, vh4, u_bc_right_wall(uh4[1:-1, -2]), v_bc_right_wall)  # this won't change anything for u2
+        f.left_wall(uh4, vh4, u_bc_left_wall, v_bc_left_wall)
+
+        if d4 == 1:
+            print('        pressure projection stage{} = True'.format(3))
+            u4, v4, _, iter1 = f.ImQ_bcs(uh4, vh4, Coef, pn, p_bcs)
+            print('        iterations stage 4 = ', iter1)
+        elif d4 == 0:
+            u4 = uh3
+            v4 = vh3
+
+        # apply bcs
+        f.top_wall(u4, v4, u_bc_top_wall, v_bc_top_wall)
+        f.bottom_wall(u4, v4, u_bc_bottom_wall, v_bc_bottom_wall)
+        f.right_wall(u4, v4, u_bc_right_wall(u4[1:-1, -1]), v_bc_right_wall)  # this won't change anything for u2
+        f.left_wall(u4, v4, u_bc_left_wall, v_bc_left_wall)
+
+        div4 = np.linalg.norm(f.div(u4, v4).ravel())
+        print('        divergence of u4 = ', div3)
+        urhs4 = f.urhs_bcs(u4, v4)
+        vrhs4 = f.vrhs_bcs(u4, v4)
+
+
+        uhnp1 = u + dt * b1 * (urhs1) + dt * b2 * (urhs2) + dt * b3 * (urhs3) + dt * b4 * (urhs4)
+        vhnp1 = v + dt * b1 * (vrhs1) + dt * b2 * (vrhs2) + dt * b3 * (vrhs3) + dt * b4 * (vrhs4)
 
         f.top_wall(uhnp1, vhnp1, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(uhnp1, vhnp1, u_bc_bottom_wall, v_bc_bottom_wall)
         f.right_wall(uhnp1, vhnp1, u_bc_right_wall(uhnp1[1:-1, -2]),v_bc_right_wall)  # this won't change anything for unp1
-        f.left_wall(uhnp1, vhnp1, u_bc_left_wall(t+dt), v_bc_left_wall(t+dt))
+        f.left_wall(uhnp1, vhnp1, u_bc_left_wall, v_bc_left_wall)
 
         unp1, vnp1, press, iter2 = f.ImQ_bcs(uhnp1, vhnp1, Coef, pn, p_bcs)
 
@@ -203,20 +240,19 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
         f.bottom_wall(unp1, vnp1, u_bc_bottom_wall, v_bc_bottom_wall)
         f.right_wall(unp1, vnp1, u_bc_right_wall(unp1[1:-1, -1]),
                      v_bc_right_wall)  # this won't change anything for unp1
-        f.left_wall(unp1, vnp1, u_bc_left_wall(t+dt), v_bc_left_wall(t+dt))
+        f.left_wall(unp1, vnp1, u_bc_left_wall, v_bc_left_wall)
 
         # post processing projection
-        new_dt =probDescription.dt_post_processing
-        unp1r = unp1 + new_dt* f.urhs_bcs(unp1, vnp1)
-        vnp1r = vnp1 + new_dt * f.vrhs_bcs(unp1, vnp1)
+        unp1r =unp1+ dt * f.urhs_bcs(unp1, vnp1)
+        vnp1r =vnp1+ dt * f.vrhs_bcs(unp1, vnp1)
 
         f.top_wall(unp1r, vnp1r, u_bc_top_wall, v_bc_top_wall)
         f.bottom_wall(unp1r, vnp1r, u_bc_bottom_wall, v_bc_bottom_wall)
         f.right_wall(unp1r, vnp1r, u_bc_right_wall(unp1r[1:-1, -2]),
                      v_bc_right_wall)  # this won't change anything for unp1
-        f.left_wall(unp1r, vnp1r, u_bc_left_wall(t + new_dt), v_bc_left_wall(t + new_dt))
-        probDescription.set_dt_post_processing(new_dt)
-        _, _, press, _ = f.ImQ_bcs(unp1r, vnp1r, Coef, pn, p_bcs,True)
+        f.left_wall(unp1r, vnp1r, u_bc_left_wall, v_bc_left_wall)
+
+        _, _, press, _ = f.ImQ_bcs(unp1r, vnp1r, Coef, pn, p_bcs)
 
         time_end = time.clock()
         psol.append(press)
@@ -258,7 +294,8 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
     if return_stability:
         return True
     else:
-        return True, [div_np1], True, press[1:-1, 1:-1].ravel()
+        return True, [div_np1], True, unp1[1:-1, 1:-1].ravel()
+        # return True, [div_np1], True, press[1:-1, 1:-1].ravel()
 
 
 # from singleton_classes import ProbDescription
@@ -269,4 +306,4 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
 # dx,dy = probDescription.dx, probDescription.dy
 # dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
 # probDescription.set_dt(dt)
-# error_channel_flow_RK3_unsteady_inlet (steps = 2000,return_stability=False, name='regular', guess=None, project=[1,1],alpha=0.99)
+# error_channel_flow_RK4 (steps = 2000,return_stability=False, name='regular', guess=None, project=[1,1,1],alpha=0.99)

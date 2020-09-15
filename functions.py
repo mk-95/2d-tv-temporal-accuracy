@@ -387,10 +387,13 @@ class func:
 
         return unp1, vnp1, p, num_iters
 
-    def ImQ_bcs(self, uh, vh, Coef, Ainv,bcs_pressure):
+    def ImQ_bcs(self, uh, vh, Coef, Ainv,bcs_pressure,is_post_processing=False):
         dx = self.probDescription.dx
         dy = self.probDescription.dy
-        dt = self.probDescription.dt
+        if is_post_processing:
+            dt = self.probDescription.dt_post_processing
+        else:
+            dt = self.probDescription.dt
         nx = self.probDescription.nx
         ny = self.probDescription.ny
         unp1 = np.zeros_like(uh)
