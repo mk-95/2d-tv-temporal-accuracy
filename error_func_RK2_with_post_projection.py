@@ -5,7 +5,7 @@ import statistics
 import singleton_classes as sc
 
 
-def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun', guess=None, project=[1],alpha=0.9):
+def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun', guess=None, project=[1],alpha=0.9,post_projection=False):
     # problem description
     probDescription = sc.ProbDescription()
     f = func(probDescription,'periodic')
@@ -149,11 +149,13 @@ def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun',
 
         unp1, vnp1, press, iter2 = f.ImQ(uhnp1, vhnp1, Coef, pn)
 
-        # post processing projection
-        unp1r = dt * f.urhs(unp1, vnp1)
-        vnp1r = dt * f.vrhs(unp1, vnp1)
+        if post_projection:
+            # post processing projection
+            unp1r = dt * f.urhs(unp1, vnp1)
+            vnp1r = dt * f.vrhs(unp1, vnp1)
 
-        _, _, press, _ = f.ImQ_post_processing(unp1r, vnp1r, Coef, pn)
+            _, _, press, _ = f.ImQ_post_processing(unp1r, vnp1r, Coef, pn)
+
         time_end = time.clock()
         psol.append(press)
         cpu_time = time_end - time_start
