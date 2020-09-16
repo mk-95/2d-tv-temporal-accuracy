@@ -671,6 +671,20 @@ class func:
                 f2x = f1x + (a21) * (Gpnx - Gpnm1x)
                 f2y = f1y + (a21) * (Gpny - Gpnm1y)
 
+            elif order == 'post_projection':
+                pnm2 = pold[2]
+                Gpnm2x = self.Gpx(pnm2)
+                Gpnm2y = self.Gpy(pnm2)
+
+                f1x = Gpnx
+                f1y = Gpny
+
+                Pnx_p = (3 * Gpnx - 4 * Gpnm1x + Gpnm2x) / 2   # Pnx'
+                Pny_p = (3 * Gpny - 4 * Gpnm1y + Gpnm2y) / 2   # Pny'
+
+                f2x = f1x + (a21) * Pnx_p
+                f2y = f1y + (a21) * Pny_p
+
             elif order == 'capuano':
                 ##
                 f1x = Gpnx + (Gpnx - Gpnm1x) / 2 + a21 * (Gpnx - Gpnm1x) / 2

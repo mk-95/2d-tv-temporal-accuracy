@@ -3,7 +3,9 @@ import numpy as np
 import os
 
 from error_func_RK2 import error_RK2
+from error_func_RK3 import error_RK3
 from error_func_RK2_with_post_projection import error_RK2_with_post_projection
+from error_func_RK3_with_post_projection import error_RK3_with_post_projection
 
 
 # taylor vortex
@@ -20,7 +22,16 @@ def run_fname():
     #------------------------
     # is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess=None, project=[1],alpha=0.999)
     # is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess='first', project=[0],alpha=0.999)
-    is_stable = error_RK2_with_post_projection(steps=nsteps,return_stability=True, name='heun', guess='first', project=[0],alpha=0.999,post_projection=True)
+    # is_stable = error_RK2_with_post_projection(steps=nsteps,return_stability=True, name='heun', guess='first', project=[0],alpha=0.999,post_projection=True)
+
+    is_stable = error_RK3(steps=nsteps,return_stability=True, name='regular', guess=None, project=[1, 1])
+    # is_stable = error_RK3(steps=nsteps,return_stability=True, name='regular', guess='second', project=[0, 1])
+    # is_stable = error_RK3(steps=nsteps,return_stability=True, name='regular', guess='second', project=[1, 0])
+    # is_stable = error_RK3(steps=nsteps,return_stability=True, name='regular', guess='second', project=[0, 0])
+
+    # is_stable = error_RK3_with_post_projection(steps=nsteps,return_stability=True, name='heun', guess='post_processing', project=[0,0],alpha=0.999,post_projection=True)
+    # is_stable = error_RK3_with_post_projection(steps=nsteps,return_stability=True, name='heun', guess='post_processing', project=[0,1],alpha=0.999,post_projection=True)
+    # is_stable = error_RK3_with_post_projection(steps=nsteps,return_stability=True, name='heun', guess='post_processing', project=[1,0],alpha=0.999,post_projection=True)
 
 
     print('is_stable = {}'.format(is_stable))
