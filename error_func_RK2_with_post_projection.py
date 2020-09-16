@@ -82,8 +82,7 @@ def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun',
     ken_exact = np.sum(uexc_cc.ravel() ** 2 + vexc_cc.ravel() ** 2) / 2
     ken_old = ken_new
     final_KE = nx * ny
-    # target_ke = ken_exact - alpha * (ken_exact - final_KE)
-    target_ke = final_KE + (1 - alpha)*(ken_new-final_KE)
+    target_ke = ken_exact - alpha * (ken_exact - final_KE)
     print('time = ', t)
     print('ken_new = ', ken_new)
     print('ken_exc = ', ken_exact)
@@ -151,10 +150,10 @@ def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun',
 
         if post_projection:
             # post processing projection
-            unp1r = dt * f.urhs(unp1, vnp1)
-            vnp1r = dt * f.vrhs(unp1, vnp1)
+            uhnp1_star = u + dt * (f.urhs(unp1, vnp1))
+            vhnp1_star = v + dt * (f.vrhs(unp1, vnp1))
 
-            _, _, press, _ = f.ImQ_post_processing(unp1r, vnp1r, Coef, pn)
+            _, _, press, _ = f.ImQ(uhnp1_star, vhnp1_star, Coef, pn)
 
         time_end = time.clock()
         psol.append(press)
@@ -184,39 +183,28 @@ def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun',
 
         # compute of kinetic energy
         ken_new = np.sum(ucc.ravel() ** 2 + vcc.ravel() ** 2) / 2
-
-        difference = ken_new - ken_old
-
-        if (ken_new<target_ke):
-            is_stable=True
-            stability_counter+=1
-
-        diff = 100 * difference /target_ke
-        if (diff > 10): stability_counter += 1
-
-        if (((count > 1) and (stability_counter > 5)) or np.isnan(ken_new)):
+        ken_exact = np.sum(uexc_cc.ravel() ** 2 + vexc_cc.ravel() ** 2) / 2
+        print('time = ', t)
+        print('ken_new = ', ken_new)
+        print('target_ken=', target_ke)
+        print('ken_exc = ', ken_exact)
+        print('(ken_new - ken_old)/ken_old = ', (ken_new - ken_old) / ken_old)
+        if (((ken_new - ken_old) / ken_old) > 0 and count > 1) or np.isnan(ken_new):
             is_stable = False
-            print('not stable !!!!!!!!')
-            break
+            print('is_stable = ', is_stable)
+            if stability_counter > 5:
+                print('not stable !!!!!!!!')
+                break
+            else:
+                stability_counter += 1
+        else:
+            is_stable = True
+            print('is_stable = ', is_stable)
+            if ken_new < target_ke and count > 30:
+                break
+        ken_old = ken_new.copy()
+        print('is_stable = ', is_stable)
 
-        # print('time = ', t)
-        # print('ken_new = ', ken_new)
-        # print('target_ken=', target_ke)
-        # print('ken_exc = ', ken_exact)
-        # print('(ken_new - ken_old)/ken_old = ', (ken_new - ken_old) / ken_old)
-        # if (((ken_new - ken_old) / ken_old) > 0 and count > 1) or np.isnan(ken_new):
-        #     is_stable = False
-        #     print('is_stable = ', is_stable)
-        #     if stability_counter > 5:
-        #         print('not stable !!!!!!!!')
-        #         break
-        #     else:
-        #         stability_counter += 1
-        # else:
-        #     is_stable = True
-        #     print('is_stable = ', is_stable)
-        #     if ken_new < target_ke and count > 30:
-        #         break
         ken_old = ken_new.copy()
         print('is_stable = ', is_stable)
 

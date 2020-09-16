@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 from error_func_RK2 import error_RK2
+from error_func_RK2_with_post_projection import error_RK2_with_post_projection
 
 
 # taylor vortex
@@ -17,8 +18,9 @@ def run_fname():
     nsteps = int(tend/probDescription.get_dt())
     # here add your scheme:
     #------------------------
-    is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess=None, project=[1],alpha=0.999)
+    # is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess=None, project=[1],alpha=0.999)
     # is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess='first', project=[0],alpha=0.999)
+    is_stable = error_RK2_with_post_projection(steps=nsteps,return_stability=True, name='heun', guess='first', project=[0],alpha=0.999,post_projection=True)
 
 
     print('is_stable = {}'.format(is_stable))
@@ -77,7 +79,7 @@ def bisect_CFL(CFLs,mu,old_CFL_low=0,old_is_stable_low=0,tol=1e-2):
     else:
         return bisect_CFL([CFL_L,CFL_H],mu,old_CFL_low,old_is_stable_low)
 
-integ = "RK21"
+integ = "RK20-star-"
 for Re in Res:
     CFL_max,CFL_min = (4,0.1)
     dx = 1/32
@@ -85,5 +87,5 @@ for Re in Res:
     CFL,err,stable_low, stable_high = bisect_CFL([CFL_max,CFL_min],mu)
     with open("{}-stability.txt".format(integ), "a") as myfile:
         myfile.write("{},{},{},{},{}".format(CFL,Re,err,stable_low, stable_high))
-
+        myfile.write("\n")
     print(CFL, Re, err, stable_low, stable_high)
