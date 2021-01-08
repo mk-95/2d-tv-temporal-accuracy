@@ -5,7 +5,17 @@ import scipy.sparse.linalg
 import pyamg
 import time
 from singleton_classes import RK4, RK3, RK2
-
+from tensorflow.keras.models import model_from_json
+# from tf_siren import SIRENModel, SinusodialRepresentationDense, SIRENInitializer
+from tf_siren.siren import *
+from tensorflow.keras.initializers import he_uniform
+tf.keras.utils.get_custom_objects().update({
+    'Sine': Sine,
+    'SIRENInitializer': SIRENInitializer,
+    'SIRENFirstLayerInitializer': SIRENFirstLayerInitializer,
+    'SinusodialRepresentationDense': SinusodialRepresentationDense,
+    'ScaledSinusodialRepresentationDense': ScaledSinusodialRepresentationDense,
+})
 
 class func:
     def __init__(self, probDescription,bcs_type=None):
@@ -588,7 +598,7 @@ class func:
         return unp1, vnp1, p, num_iters
 
 
-    def Guess(self, pold, order=None, integ='Rk3', type='regular'):
+    def Guess(self, pold, order=None, integ='Rk3', type='regular',theta=None,ml_model='',ml_weights=''):
         pn = pold[0]
         pnm1 = pold[1]
 
@@ -771,6 +781,68 @@ class func:
                 ## first order f1
                 f1x = self.Gpx(pn)
                 f1y = self.Gpy(pn)
+            elif order == 'capuano':
+                ##
+                Gpnm1x = self.Gpx(pnm1)
+                Gpnm1y = self.Gpy(pnm1)
+                f1x = Gpnx + (Gpnx - Gpnm1x) / 2 + a21 * (Gpnx - Gpnm1x) / 2
+                f1y = Gpny + (Gpny - Gpnm1y) / 2 + a21 * (Gpny - Gpnm1y) / 2
+
+            elif order == 'ml':
+                # load json and create model
+                json_file = open(ml_model, 'r')
+                loaded_model_json = json_file.read()
+                json_file.close()
+                from tf_siren.siren import Sine
+                loaded_model = model_from_json(loaded_model_json)
+                # load weights into new model
+                loaded_model.load_weights(ml_weights)
+                loaded_model.compile(loss='mean_squared_error', metrics=['mean_absolute_error'], optimizer='Adam')
+
+                Pn = pn.ravel()
+                Pnm1 = pnm1.ravel()
+                len = Pn.shape[0]
+                input = np.ndarray(shape=(len, 2))
+                input[:, 1] = Pn
+                input[:, 0] = Pnm1
+
+                p_predict= loaded_model.predict(input)
+                p_predict= p_predict.reshape(pn.shape)
+
+                Pnx = self.Gpx(p_predict)
+                Pny = self.Gpy(p_predict)
+
+                f1x = Pnx
+                f1y = Pny
+
+            elif order == 'ml_dt':
+                # load json and create model
+                json_file = open(ml_model, 'r')
+                loaded_model_json = json_file.read()
+                json_file.close()
+                from tf_siren.siren import Sine
+                loaded_model = model_from_json(loaded_model_json)
+                # load weights into new model
+                loaded_model.load_weights(ml_weights)
+                loaded_model.compile(loss='mean_squared_error', metrics=['mean_absolute_error'], optimizer='Adam')
+
+                Pn = pn.ravel()
+                Pnm1 = pnm1.ravel()
+                len = Pn.shape[0]
+                input = np.ndarray(shape=(len, 3))
+                input[:, 2] = Pn
+                input[:, 1] = self.probDescription.dt
+                input[:, 0] = Pnm1
+
+                p_predict = loaded_model.predict(input)
+                p_predict = p_predict.reshape(pn.shape)
+
+                Pnx = self.Gpx(p_predict)
+                Pny = self.Gpy(p_predict)
+
+                f1x = Pnx
+                f1y = Pny
+
             elif order == None:
                 f1x = np.zeros_like(pn)
                 f1y = np.zeros_like(pn)

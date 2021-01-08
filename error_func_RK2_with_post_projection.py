@@ -3,9 +3,9 @@ from functions import func
 import time
 import statistics
 import singleton_classes as sc
+import pathlib
 
-
-def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun', guess=None, project=[1],alpha=0.9,post_projection=False):
+def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun', guess=None, project=[1],alpha=0.9,post_projection=False,save_to=None,refNum=None,ml_model=None,ml_weights=None):
     # problem description
     probDescription = sc.ProbDescription()
     f = func(probDescription,'periodic')
@@ -103,7 +103,11 @@ def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun',
         if count > 1:
             pn = psol[-1].copy()
             pnm1 = psol[-2].copy()
-            f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name)
+
+            if ml_model !=None and ml_weights !=None:
+                f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name,ml_model=ml_model,ml_weights=ml_weights)
+            else:
+                f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name)
             d2, = project
 
         elif count <= 1:  # compute pressures for 2 time steps
@@ -148,13 +152,21 @@ def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun',
 
         unp1, vnp1, press, iter2 = f.ImQ(uhnp1, vhnp1, Coef, pn)
 
+        if save_to!=None and refNum!=None:
+            path = save_to+"/"+str(refNum)+ "/p"
+            pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+            np.save(path+ "/{:04d}.npy".format(count+1), press[1:-1, 1:-1].ravel())
+
         if post_projection:
             # post processing projection
             uhnp1_star = u + dt * (f.urhs(unp1, vnp1))
             vhnp1_star = v + dt * (f.vrhs(unp1, vnp1))
 
-            _, _, press, _ = f.ImQ(uhnp1_star, vhnp1_star, Coef, pn)
-
+            _, _, post_press, _ = f.ImQ(uhnp1_star, vhnp1_star, Coef, pn)
+            if save_to != None and refNum != None:
+                path = save_to + "/" + str(refNum)+ "/p_star"
+                pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+                np.save(path+ "/{:04d}.npy".format(count+1), post_press[1:-1, 1:-1].ravel())
         time_end = time.clock()
         psol.append(press)
         cpu_time = time_end - time_start
@@ -229,3 +241,4 @@ def error_RK2_with_post_projection(steps=3, return_stability=False, name='heun',
         return is_stable
     else:
         return diff, [div_n, div2, div_np1], is_stable, unp1[1:-1, 1:].ravel()
+        # return diff, [div_n, div2, div_np1], is_stable, post_press[1:-1, 1:].ravel()
