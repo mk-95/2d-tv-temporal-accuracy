@@ -28,10 +28,6 @@ def error_FE (steps=3, return_stability=False,alpha=0.99):
     tend = steps
     count = 0
     print('dt=',dt)
-    # cell centered coordinates
-    xx = np.linspace(dx/2.0,lx - dx/2.0,nx, endpoint=True)
-    yy = np.linspace(dy/2.0,ly - dy/2.0,ny, endpoint=True)
-    xcc, ycc = np.meshgrid(xx,yy)
 
     xcc, ycc = probDescription.get_cell_centered()
     xu, yu = probDescription.get_XVol()
@@ -71,6 +67,7 @@ def error_FE (steps=3, return_stability=False,alpha=0.99):
 
     is_stable =True
     stability_counter =0
+    total_iteration =0
     # # u and v num cell centered
     ucc = 0.5*(u0[1:-1,2:] + u0[1:-1,1:-1])
     vcc = 0.5*(v0[2:,1:-1] + v0[1:-1,1:-1])
@@ -104,11 +101,6 @@ def error_FE (steps=3, return_stability=False,alpha=0.99):
         time_start = time.clock()
         u = usol[-1].copy()
         v = vsol[-1].copy()
-        pn = np.zeros_like(u)
-        pnm1 =  np.zeros_like(u)
-        time_start = time.clock()
-        uhnp1 = u + dt*urhs(u,v,μ,dx,dy,nx,ny)
-        vhnp1 = v + dt*vrhs(u,v,μ,dx,dy,nx,ny)
 
         # divergence of u1
         div_n = np.linalg.norm(f.div(u, v).ravel())
@@ -160,14 +152,14 @@ def error_FE (steps=3, return_stability=False,alpha=0.99):
                 print('not stable !!!!!!!!')
                 break
             else:
-                stability_counter+=1
+                stability_counter += 1
         else:
             is_stable = True
-            print('is_stable = ',is_stable)
-            if ken_new<target_ke and count > 30:
+            print('is_stable = ', is_stable)
+            if ken_new < target_ke and count > 30:
                 break
         ken_old = ken_new.copy()
-
+        print('is_stable = ', is_stable)
         #plot of the pressure gradient in order to make sure the solution is correct
         # # plt.contourf(usol[-1][1:-1,1:])
         # plt.contourf((psol[-1][1:-1,1:] - psol[-1][1:-1,:-1])/dx)
