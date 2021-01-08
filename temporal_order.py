@@ -28,21 +28,34 @@ from normal_velocity_bcs_RK3 import error_normal_velocity_bcs_RK3
 from taylor_vortex_with_time_dependent_bcs_RK2 import error_tv_time_dependent_bcs_RK2
 from taylor_vortex_with_time_dependent_bcs_RK3 import error_tv_time_dependent_bcs_RK3
 
+from taylor_vortex_with_steady_bcs_RK2 import error_tv_steady_bcs_RK2
 
 # taylor vortex
-#---------------
-probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.005)
+# ---------------
+probDescription = ProbDescription(N=[32,32],L=[1,1],μ =1e-3,dt = 0.0025)
 
 
-# # channel flow
-# #--------------
+# # channel flow steady
+# #--------------------
 # ν = 0.1
 # Uinlet = 1
-# probDescription = ProbDescription(N=[4*32,32],L=[4,1],μ =ν,dt = 0.05)
+# probDescription = ProbDescription(N=[4*8,8],L=[4,1],μ =ν,dt = 0.05)
 # dx,dy = probDescription.dx, probDescription.dy
 # dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
 # probDescription.set_dt(dt/4)
+# probDescription.set_dt(1e-4)
 
+
+# channel flow unsteady_inlet
+#-----------------------------
+# ν = 0.1
+# Uinlet = 1
+# probDescription = ProbDescription(N=[4*8,8],L=[4,1],μ =ν,dt = 0.05)
+# # probDescription = ProbDescription(N=[4*32,32],L=[10,1],μ =ν,dt = 0.05)
+# dx,dy = probDescription.dx, probDescription.dy
+# dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
+# probDescription.set_dt(dt/4)
+# # probDescription.set_dt(1e-4)
 
 levels = 8        # total number of refinements
 
@@ -61,8 +74,8 @@ timesteps = [5*rt**i for i in range(0,levels) ]
 stages_projections = [[0],[0],[1]]
 guesses = [None,'first',None]
 keys = ['RK20*','RK20','RK21']
-integrator_name = 'heun'
-theta = None
+integrator_name = 'theta'
+theta = 2.0/3
 
 # # RK3 integrators
 # #-----------------
@@ -72,13 +85,21 @@ theta = None
 # integrator_name = 'heun'
 # theta = None
 
+# # RK4 integrators
+# #-----------------
+# stages_projections = [[0,0,0]]
+# guesses = ["third"]
+# keys = ['RK4000']
+# integrator_name = '3/8'
+# theta = None
+
 # to run single case
 #========================
 # # RK2 integrator
-# #----------------
-# stages_projections = [[1]]
-# guesses = [None]
-# keys = ['RK21']
+# # ----------------
+# stages_projections = [[0]]
+# guesses = ['first']
+# keys = ['RK20']
 # integrator_name = 'heun'
 # theta = None
 
@@ -90,8 +111,21 @@ theta = None
 # integrator_name = 'heun'
 # theta = None
 
-file_name = 'tv_unsteady_bcs_{}.json'.format('RK2')
-directory = './temporal_orders/taylor_vortex_unsteady_bcs/'
+# # RK3 integrator Capuano
+# #-----------------------
+# stages_projections = [[0, 0],[1, 0], [0, 1],[1,1]]
+# guesses = ['capuano_ci_00','capuano_ci_10','capuano_ci_01',None]
+# # guesses = ['capuano_00','capuano_10','capuano_01',None]
+# keys = ['RK300','RK310','RK301','RK311']
+# # keys = ['FC_ci_00','FC_ci_10','FC_ci_01']
+# # keys = ['KS_ci_00','KS_ci_10','KS_ci_01']
+# integrator_name = 'regular'
+# theta = None
+
+file_name = 'taylor_vortex_2D_pressure_atol_stage_2_1e-2_{}.json'.format('theta_raltson')
+# file_name = 'channel_flow_steady_inlet_RK3_128_32_{}.json'.format('heun')
+# file_name = 'taylor_vortex_2D_RK2_{}.json'.format('heun')
+directory = './iteration-count/RK2-tv-2d/cheap-solve-intermediate-stage/temporal_order/'
 
 dict = {}
 for proj, guess, key in zip(stages_projections,guesses,keys):
@@ -101,9 +135,13 @@ for proj, guess, key in zip(stages_projections,guesses,keys):
 
         # taylor vortex
         #---------------
-        # e, divs, _, phi =error_RK2(steps = nsteps,name=integrator_name,guess=guess,project=proj)
-        # e, divs, _, phi = error_RK3(steps=nsteps, name='regular', guess='second', project=[0, 0])
-        # e, divs, _, phi =error_RK4(steps = nsteps,name='3/8',guess=None,project=[1,1,1])
+        e, divs, _, phi =error_RK2(steps = nsteps,name=integrator_name,guess=guess,project=proj,theta=theta)
+        # e, divs, _, phi = error_RK3(steps=nsteps, name=integrator_name, guess=guess, project=proj)
+        # e, divs, _, phi =error_RK4(steps = nsteps,name=integrator_name,guess=guess,project=proj)
+
+        # Taylor Vortex Capuano
+        # -----------------------
+        # e, divs, _, phi = error_capuanos(steps=nsteps, name=integrator_name, guess=guess, project=proj)
 
         # FE channel flow
         #-----------------
@@ -132,7 +170,12 @@ for proj, guess, key in zip(stages_projections,guesses,keys):
 
         # unsteady boundary conditions taylor vortex
         #-------------------------------------------
-        e, divs, _, phi = error_tv_time_dependent_bcs_RK2(steps=nsteps,name=integrator_name,guess=guess,project=proj,theta=theta)
+        # e, divs, _, phi = error_tv_time_dependent_bcs_RK2(steps=nsteps,name=integrator_name,guess=guess,project=proj,theta=theta)
+        # e, divs, _, phi = error_tv_time_dependent_bcs_RK3(steps=nsteps,name=integrator_name,guess=guess,project=proj)
+
+        # steady boundary conditions taylor vortex
+        # -------------------------------------------
+        # e, divs, _, phi = error_tv_steady_bcs_RK2(steps=nsteps,name=integrator_name,guess=guess,project=proj,theta=theta)
         # e, divs, _, phi = error_tv_time_dependent_bcs_RK3(steps=nsteps,name=integrator_name,guess=guess,project=proj)
 
         phiAll.append(phi)
