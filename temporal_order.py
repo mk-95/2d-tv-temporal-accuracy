@@ -3,9 +3,10 @@ import json
 import matplotlib.pyplot as plt
 from singleton_classes import ProbDescription
 
-# from error_func_RK2 import error_RK2
-# from error_func_RK3 import error_RK3
-# from error_func_RK4 import error_RK4
+from error_func_RK2 import error_RK2
+from error_func_RK3 import error_RK3
+from error_func_RK4 import error_RK4
+from error_func_capuano import error_capuanos
 
 from lid_driven_cavity_FE import error_lid_driven_cavity_FE
 from lid_driven_cavity_RK2 import error_lid_driven_cavity_RK2

@@ -655,7 +655,7 @@ class func:
             a21 = integ.a21
             a31 = integ.a31
             a32 = integ.a32
-
+            b3 = integ.b3
             Gpnm1x = self.Gpx(pnm1)
             Gpnm1y = self.Gpy(pnm1)
             f2x = np.zeros_like(Gpnx)
@@ -689,18 +689,47 @@ class func:
                 f2x = f1x + (a21) * Pnx_p
                 f2y = f1y + (a21) * Pny_p
 
-            elif order == 'capuano':
+            elif order == 'capuano_ci_00':
                 ##
                 f1x = Gpnx + (Gpnx - Gpnm1x) / 2 + a21 * (Gpnx - Gpnm1x) / 2
                 f1y = Gpny + (Gpny - Gpnm1y) / 2 + a21 * (Gpny - Gpnm1y) / 2
                 f2x = Gpnx + (Gpnx - Gpnm1x) / 2 + (a31 + a32) * (Gpnx - Gpnm1x) / 2
                 f2y = Gpny + (Gpny - Gpnm1y) / 2 + (a31 + a32) * (Gpny - Gpnm1y) / 2
 
+            elif order == 'capuano_ci_01':
+                ##
+                f1x = Gpnx + (Gpnx - Gpnm1x) / 2 + a21 * (Gpnx - Gpnm1x) / 2
+                f1y = Gpny + (Gpny - Gpnm1y) / 2 + a21 * (Gpny - Gpnm1y) / 2
+                f2x = 0
+                f2y = 0
+
+            elif order == 'capuano_ci_10':
+                ##
+                f1x = 0
+                f1y = 0
+                f2x = Gpnx + (Gpnx - Gpnm1x) / 2 + (a31 + a32) * (Gpnx - Gpnm1x) / 2
+                f2y = Gpny + (Gpny - Gpnm1y) / 2 + (a31 + a32) * (Gpny - Gpnm1y) / 2
+
+            elif order == 'capuano_00':
                 # in this form no need for c_i
-                # f1x = Gpnx + (Gpnx - Gpnm1x) / 2 +  (Gpnx - Gpnm1x) / 3
-                # f1y = Gpny + (Gpny - Gpnm1y) / 2 +  (Gpny - Gpnm1y) / 3
-                # f2x = Gpnx + (Gpnx - Gpnm1x) / 2 +  (Gpnx - Gpnm1x) / 3
-                # f2y = Gpny + (Gpny - Gpnm1y) / 2 +  (Gpny - Gpnm1y) / 3
+                f1x = Gpnx + (Gpnx - Gpnm1x) / 2 +  (Gpnx - Gpnm1x) / 3
+                f1y = Gpny + (Gpny - Gpnm1y) / 2 +  (Gpny - Gpnm1y) / 3
+                f2x = Gpnx + (Gpnx - Gpnm1x) / 2 +  (Gpnx - Gpnm1x) / 3
+                f2y = Gpny + (Gpny - Gpnm1y) / 2 +  (Gpny - Gpnm1y) / 3
+
+            elif order == 'capuano_10':
+                # in this form no need for c_i
+                f1x = 0
+                f1y = 0
+                f2x = Gpnx + (Gpnx - Gpnm1x) / 2 +  (Gpnx - Gpnm1x) / 6 / (a31 + a32) / b3
+                f2y = Gpny + (Gpny - Gpnm1y) / 2 +  (Gpny - Gpnm1y) / 6 / (a31 + a32) / b3
+
+            elif order == 'capuano_01':
+                # in this form no need for c_i
+                f1x = Gpnx + (Gpnx - Gpnm1x) / 2
+                f1y = Gpny + (Gpny - Gpnm1y) / 2
+                f2x = 0
+                f2y = 0
 
             elif order == None:
                 ## f1 and f2 are zeros

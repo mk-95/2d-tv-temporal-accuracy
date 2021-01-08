@@ -1,7 +1,7 @@
 import numpy as np
 
 # from error_func_FE import *
-# from capuanos import *
+from error_func_capuano import error_capuanos
 # from error_func_capuano import error_capuano
 import matplotlib.pyplot as plt
 import json
@@ -32,6 +32,7 @@ from channel_flow_RK2_with_post_projection import error_channel_flow_RK2_with_po
 from channel_flow_RK3 import error_channel_flow_RK3
 from channel_flow_RK3_unsteady_inlet import error_channel_flow_RK3_unsteady_inlet
 
+from channel_flow_RK3_unsteady_capuano import error_channel_flow_RK3_unsteady_inlet_capuano
 
 from normal_velocity_bcs import error_normal_velocity_bcs_RK2
 
@@ -91,11 +92,21 @@ for dt, nsteps,new_dt in zip(dts, timesteps,dts_pp):
     probDescription.dt_post_processing = new_dt
     # taylor vortex
     #---------------
-    # e, divs, _, phi =error_RK2(steps = nsteps,name='midpoint',guess='first',project=[0])
+    e, divs, _, phi =error_RK2(steps = nsteps,name='midpoint',guess='capuano',project=[0])
+    # e, divs, _, phi =error_capuano_RK2(steps = nsteps,name='heun',guess='first',project=[0])
     # e, divs, _, phi = error_RK3(steps=nsteps, name='regular', guess='second', project=[0, 0])
     # e, divs, _, phi = error_RK3_with_post_projection(steps=nsteps, name='regular', guess='second', project=[1, 0],post_projection=True)
     # e, divs, _, phi = error_RK2_with_post_projection(steps=nsteps, name='heun', guess='ml_dt', project=[0],post_projection=False,ml_model='ML/model4_siren_dt/best.json',ml_weights='ML/model4_siren_dt/best.h5')
     # e, divs, _, phi =error_RK4(steps = nsteps,name='3/8',guess="post-processing-approx",project=[0,0,0])
+
+    # Taylor Vortex Capuano
+    #-----------------------
+    # e, divs, _, phi = error_capuanos(steps=nsteps, name='regular', guess='capuano_ci_00', project=[0, 0])
+    # e, divs, _, phi = error_capuanos(steps=nsteps, name='regular', guess='capuano_ci_10', project=[1, 0])
+    # e, divs, _, phi = error_capuanos(steps=nsteps, name='regular', guess='capuano_ci_01', project=[0, 1])
+    # e, divs, _, phi = error_capuanos(steps=nsteps, name='regular', guess='capuano_00', project=[0, 0])
+    # e, divs, _, phi = error_capuanos(steps=nsteps, name='regular', guess='capuano_10', project=[1, 0])
+    # e, divs, _, phi = error_capuanos(steps=nsteps, name='regular', guess='capuano_01', project=[0, 1])
 
     # FE channel flow
     #-----------------
@@ -115,7 +126,9 @@ for dt, nsteps,new_dt in zip(dts, timesteps,dts_pp):
     # RK3 channel flow
     # -----------------
     # e, divs, _, phi = error_channel_flow_RK3(steps=nsteps, name='heun', guess=None, project=[1,1])
-    e, divs, _, phi = error_channel_flow_RK3_unsteady_inlet(steps=nsteps, name='regular', guess=None,project=[1, 1])
+    # e, divs, _, phi = error_channel_flow_RK3_unsteady_inlet(steps=nsteps, name='regular', guess=None,project=[1, 1])
+    ## capuano
+    # e, divs, _, phi = error_channel_flow_RK3_unsteady_inlet_capuano(steps=nsteps, name='regular',guess='capuano_10',project=[1,0])
 
     # RK4 channel flow
     # -----------------
