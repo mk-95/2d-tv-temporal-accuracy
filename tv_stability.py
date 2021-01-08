@@ -22,9 +22,13 @@ def run_fname():
     #------------------------
     # is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess=None, project=[1],alpha=0.999)
     # is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess='first', project=[0],alpha=0.999)
+    is_stable = error_RK2(steps=nsteps,return_stability=True, name='heun', guess=None, project=[1],alpha=0.999)
     # is_stable = error_RK2_with_post_projection(steps=nsteps,return_stability=True, name='heun', guess='first', project=[0],alpha=0.999,post_projection=True)
 
-    is_stable = error_RK3(steps=nsteps,return_stability=True, name='regular', guess=None, project=[1, 1])
+    # with ML model
+    # is_stable = error_RK2_with_post_projection(steps=nsteps,return_stability=True, name='heun', guess='ml', project=[0],alpha=0.999,post_projection=False,ml_model='ML/model1/best.json',ml_weights='ML/model1/best.h5')
+
+    # is_stable = error_RK3(steps=nsteps,return_stability=True, name='regular', guess=None, project=[1, 1])
     # is_stable = error_RK3(steps=nsteps,return_stability=True, name='regular', guess='second', project=[0, 1])
     # is_stable = error_RK3(steps=nsteps,return_stability=True, name='regular', guess='second', project=[1, 0])
     # is_stable = error_RK3(steps=nsteps,return_stability=True, name='regular', guess='second', project=[0, 0])
@@ -90,7 +94,7 @@ def bisect_CFL(CFLs,mu,old_CFL_low=0,old_is_stable_low=0,tol=1e-2):
     else:
         return bisect_CFL([CFL_L,CFL_H],mu,old_CFL_low,old_is_stable_low)
 
-integ = "RK20-star-"
+integ = "RK21-"
 for Re in Res:
     CFL_max,CFL_min = (4,0.1)
     dx = 1/32

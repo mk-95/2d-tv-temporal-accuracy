@@ -176,7 +176,7 @@ def error_FE (steps=3, return_stability=False,alpha=0.99):
         count+=1
     diff = np.linalg.norm(uexact(a,b,xu,yu,t).ravel()-unp1[1:-1,1:] .ravel(),np.inf)
     print('        error={}'.format(diff))
-    if return_iter:
-        return diff, [div_np1], is_stable, int(statistics.mean(iterations)), int(sum(iterations))
+    if return_stability:
+        return is_stable
     else:
         return diff, [total_iteration], is_stable, unp1[1:-1, 1:].ravel()
