@@ -1,24 +1,29 @@
 import numpy as np
-from functions import *
+from functions import func
 import time
 import statistics
+import singleton_classes as sc
+import scipy
 
-def error_FE (dt,μ,n = [32,32],steps = 3,return_iter=False):
+def error_FE (steps=3, return_stability=False,alpha=0.99):
+    # problem description
+    probDescription = sc.ProbDescription()
+    f = func(probDescription, 'periodic')
+    dt = probDescription.get_dt()
+    μ = probDescription.get_mu()
+    nx, ny = probDescription.get_gridPoints()
+    dx, dy = probDescription.get_differential_elements()
     # define exact solutions
-    a = 2*np.pi
-    b = 2*np.pi
-    uexact = lambda a, b, x, y, t: 1 - np.cos(a*(x - t))*np.sin(b*(y - t))*np.exp(-(a**2 + b**2)*μ*t)
-    vexact = lambda a, b, x, y, t: 1 + np.sin(a*(x - t))*np.cos(b*(y - t))*np.exp(-(a**2 + b**2)*μ*t)
+    a = 2 * np.pi
+    b = 2 * np.pi
+    uf = 1
+    vf = 1
+    uexact = lambda a, b, x, y, t: uf - np.cos(a * (x - uf * t)) * np.sin(b * (y - vf * t)) * np.exp(
+        -(a ** 2 + b ** 2) * μ * t)
+    vexact = lambda a, b, x, y, t: vf + np.sin(a * (x - uf * t)) * np.cos(b * (y - vf * t)) * np.exp(
+        -(a ** 2 + b ** 2) * μ * t)
 
     #     # define some boiler plate
-    nx = n[0]
-    ny = n[1]
-    # dt =0.09/p # timestep size
-    lx = 1.0
-    ly = 1.0
-    dx = lx/nx
-    dy = ly/ny
-
     t = 0.0
     tend = steps
     count = 0
@@ -28,23 +33,19 @@ def error_FE (dt,μ,n = [32,32],steps = 3,return_iter=False):
     yy = np.linspace(dy/2.0,ly - dy/2.0,ny, endpoint=True)
     xcc, ycc = np.meshgrid(xx,yy)
 
-    # x-staggered coordinates
-    xxs = np.linspace(0,lx,nx+1, endpoint=True)
-    xu,yu = np.meshgrid(xxs, yy)
-
-    # y-staggered coordinates
-    yys = np.linspace(0,ly,ny+1, endpoint=True)
-    xv,yv = np.meshgrid(xx, yys)
+    xcc, ycc = probDescription.get_cell_centered()
+    xu, yu = probDescription.get_XVol()
+    xv, yv = probDescription.get_YVol()
 
     # initialize velocities - we stagger everything in the negative direction. A scalar cell owns its minus face, only.
     # Then, for example, the u velocity field has a ghost cell at x0 - dx and the plus ghost cell at lx
-    u0 = np.zeros([ny+2, nx + 2]) # include ghost cells
-    u0[1:-1,1:] = uexact(a,b,xu,yu,0) # initialize the interior of u0
+    u0 = np.zeros([ny + 2, nx + 2])  # include ghost cells
+    u0[1:-1, 1:] = uexact(a, b, xu, yu, 0)  # initialize the interior of u0
     # same thing for the y-velocity component
-    v0 = np.zeros([ny +2, nx+2]) # include ghost cells
-    v0[1:,1:-1] = vexact(a,b,xv,yv,0)
-    periodic_u(u0)
-    periodic_v(v0)
+    v0 = np.zeros([ny + 2, nx + 2])  # include ghost cells
+    v0[1:, 1:-1] = vexact(a, b, xv, yv, 0)
+    f.periodic_u(u0)
+    f.periodic_v(v0)
 
     # initialize the pressure
     p0 = np.zeros([nx+2,ny+2]); # include ghost cells
@@ -91,7 +92,14 @@ def error_FE (dt,μ,n = [32,32],steps = 3,return_iter=False):
     while count < tend:
         print('timestep:{}'.format(count+1))
         print('-----------')
-        # rk coefficients
+        ## stage 1
+        pn = np.zeros_like(u0)
+        if count > 1:
+            pn = psol[-1].copy()
+
+        print('    Stage 1:')
+        print('    --------')
+        time_start = time.clock()
         u = usol[-1].copy()
         v = vsol[-1].copy()
         pn = np.zeros_like(u)
@@ -100,13 +108,22 @@ def error_FE (dt,μ,n = [32,32],steps = 3,return_iter=False):
         uhnp1 = u + dt*urhs(u,v,μ,dx,dy,nx,ny)
         vhnp1 = v + dt*vrhs(u,v,μ,dx,dy,nx,ny)
 
-        unp1,vnp1,press, iter = ImQ(uhnp1,vhnp1,Coef,dx,dy,dt,nx,ny,pn)
+        # divergence of u1
+        div_n = np.linalg.norm(f.div(u, v).ravel())
+        print('        divergence of u1 = ', div_n)
+        ## stage 2
+        print('    Stage 2:')
+        print('    --------')
+        uh = u +  dt * f.urhs(u, v)
+        vh = v +  dt * f.vrhs(u, v)
+        unp1, vnp1, press, iter = f.ImQ(uh, vh, Coef, pn)
+        total_iteration+=iter
         time_end = time.clock()
         psol.append(press)
         cpu_time = time_end - time_start
         print('        cpu_time=',cpu_time)
         # Check mass residual
-        div_np1 = np.linalg.norm(div(unp1,vnp1,dx,dy,nx,ny).ravel())
+        div_np1 = np.linalg.norm(f.div(unp1, vnp1).ravel())
         residual = div_np1
         #         if residual > 1e-12:
         print('        Mass residual:',residual)

@@ -708,7 +708,7 @@ class func:
             return f1x, f1y, f2x, f2y
 
         elif integ == 'RK2':
-            integ = RK2(type)
+            integ = RK2(type,theta)
             a21 = integ.a21
             if order == 'second':
                 Gpnm1x = self.Gpx(pnm1)

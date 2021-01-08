@@ -25,16 +25,25 @@ class ProbDescription:
         self.dt_post_processing = None
         self.coef = None
 
+        self.cell_centerted_coordinates()
+        self.x_staggered_coordinates()
+        self.y_staggered_coordinates()
+
+    def cell_centerted_coordinates(self):
         # cell centered coordinates
         xx = np.linspace(self.dx / 2.0, self.lx - self.dx / 2.0, self.nx, endpoint=True)
         yy = np.linspace(self.dy / 2.0, self.ly - self.dy / 2.0, self.ny, endpoint=True)
         self.xcc, self.ycc = np.meshgrid(xx, yy)
 
+    def x_staggered_coordinates(self):
         # x-staggered coordinates
+        yy = np.linspace(self.dy / 2.0, self.ly - self.dy / 2.0, self.ny, endpoint=True)
         xxs = np.linspace(0, self.lx, self.nx + 1, endpoint=True)
         self.xu, self.yu = np.meshgrid(xxs, yy)
 
+    def y_staggered_coordinates(self):
         # y-staggered coordinates
+        xx = np.linspace(self.dx / 2.0, self.lx - self.dx / 2.0, self.nx, endpoint=True)
         yys = np.linspace(0, self.ly, self.ny + 1, endpoint=True)
         self.xv, self.yv = np.meshgrid(xx, yys)
 
@@ -68,12 +77,29 @@ class ProbDescription:
     def set_dt(self, dt):
         self.dt = dt
 
+    def set_resolution(self,other):
+        self.nx,self.ny = other
+        self.__grid_spacing()
+        self.cell_centerted_coordinates()
+        self.x_staggered_coordinates()
+        self.y_staggered_coordinates()
+
+    def set_domain_size(self,other):
+        self.lx,self.ly = other
+        self.__grid_spacing()
+        self.cell_centerted_coordinates()
+        self.x_staggered_coordinates()
+        self.y_staggered_coordinates()
+
+    def __grid_spacing(self):
+        self.dx, self.dy = [l / n for l, n in zip([self.lx,self.ly], [self.nx,self.ny])]
+
     def get_dt_post_processing(self):
         return self.dt_post_processing
     def set_dt_post_processing(self,dt):
         self.dt_post_processing = dt
 
-@SingletonDecorator
+# @SingletonDecorator
 class RK2:
     def __init__(self, name,theta=None):
         self.name = name
@@ -91,7 +117,7 @@ class RK2:
             self.b1 = 0.0
             self.b2 = 1.0
 
-        elif self.name=='theta':
+        elif self.name=='theta' and self.theta!=None:
             self.a21 = self.theta
             self.b1 = 1.0 -1.0 / (self.theta*2.0)
             self.b2 = 1.0 / (self.theta*2.0)

@@ -5,7 +5,7 @@ import statistics
 import singleton_classes as sc
 
 
-def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=[1],alpha=0.9):
+def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=[1],alpha=0.9,theta=None):
     # problem description
     probDescription = sc.ProbDescription()
     f = func(probDescription,'periodic')
@@ -92,7 +92,7 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
         print('timestep:{}'.format(count + 1))
         print('-----------')
         # rk coefficients
-        RK2 = sc.RK2(name)
+        RK2 = sc.RK2(name,theta)
         a21 = RK2.a21
         b1 = RK2.b1
         b2 = RK2.b2
@@ -103,7 +103,7 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
         if count > 1:
             pn = psol[-1].copy()
             pnm1 = psol[-2].copy()
-            f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name)
+            f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name,theta=theta)
             d2, = project
 
         elif count <= 1:  # compute pressures for 2 time steps

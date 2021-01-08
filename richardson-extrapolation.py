@@ -136,7 +136,7 @@ exact_err_mom=[]
 errAll = []
 for i in range(0,levels-1):
     diff = phiAll[i+1] - phiAll[i]
-    err = np.linalg.norm(diff,2)
+    err = np.linalg.norm(diff,np.inf)
     print ('error', err)
     errAll.append(err)
 
@@ -147,11 +147,11 @@ for i in range(0,levels-2):
     print ('order: ',Order[-1])
 
 
-dict = {'timesteps':dts,'x-mom':{"order":Order, "error":errAll}}
-# save the values in a json file
-name = "post-processing-pressure/unsteady-rk3-1e-4.txt"
-with open(name,"w") as file:
-    json.dump(dict,file,indent=4)
+# dict = {'timesteps':dts,'x-mom':{"order":Order, "error":errAll}}
+# # save the values in a json file
+# name = "post-processing-pressure/unsteady-rk3-1e-4.txt"
+# with open(name,"w") as file:
+#     json.dump(dict,file,indent=4)
 
 
 fig_temp = plt.figure()
