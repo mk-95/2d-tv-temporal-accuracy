@@ -400,7 +400,11 @@ class func:
         vnp1 = np.zeros_like(vh)
         divuhat = self.div(uh, vh)
 
-        prhs = 1.0 / dt * divuhat[1:-1, 1:-1]
+        if type(m_t) == type(np.ndarray):
+            m_t[2:-2, 2:-2] = 0.0
+            prhs = 1.0 / dt * divuhat[1:-1, 1:-1] - m_t[1:-1, 1:-1]
+        else:
+            prhs = 1.0 / dt * divuhat[1:-1, 1:-1]
         # plt.imshow(prhs,origin='bottom',cmap='jet',vmax=80, vmin=-80)
         # # plt.contourf((psol[-1][1:-1,1:] - psol[-1][1:-1,:-1])/dx)
         # v = np.linspace(-80, 80, 4, endpoint=True)
@@ -464,7 +468,7 @@ class func:
         self.periodic_scalar(p)
         return p
 
-    def ImQ_post_processing(self, uh, vh, Coef, prhs, a=1):
+    def ImQ_post_processing(self, uh, vh, Coef, p0, a=1):
         dx = self.probDescription.dx
         dy = self.probDescription.dy
         dt = self.probDescription.dt

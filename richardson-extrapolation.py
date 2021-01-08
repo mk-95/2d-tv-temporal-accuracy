@@ -12,6 +12,9 @@ from singleton_classes import ProbDescription
 # from error_func_RK3 import error_RK3
 from error_func_RK4 import error_RK4
 
+from error_func_RK2_with_post_projection import error_RK2_with_post_projection
+from error_func_RK3_with_post_projection import error_RK3_with_post_projection
+
 from lid_driven_cavity_FE import error_lid_driven_cavity_FE
 from lid_driven_cavity_RK2 import error_lid_driven_cavity_RK2
 from lid_driven_cavity_RK3 import error_lid_driven_cavity_RK3
@@ -90,6 +93,8 @@ for dt, nsteps,new_dt in zip(dts, timesteps,dts_pp):
     #---------------
     # e, divs, _, phi =error_RK2(steps = nsteps,name='midpoint',guess='first',project=[0])
     # e, divs, _, phi = error_RK3(steps=nsteps, name='regular', guess='second', project=[0, 0])
+    # e, divs, _, phi = error_RK3_with_post_projection(steps=nsteps, name='regular', guess='second', project=[1, 0],post_projection=True)
+    # e, divs, _, phi = error_RK2_with_post_projection(steps=nsteps, name='heun', guess='ml_dt', project=[0],post_projection=False,ml_model='ML/model4_siren_dt/best.json',ml_weights='ML/model4_siren_dt/best.h5')
     # e, divs, _, phi =error_RK4(steps = nsteps,name='3/8',guess="post-processing-approx",project=[0,0,0])
 
     # FE channel flow
