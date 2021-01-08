@@ -4,6 +4,18 @@ import time
 import singleton_classes as sc
 import statistics
 import matplotlib.pyplot as plt
+from mpl_toolkits import axes_grid1
+
+def add_colorbar(im, aspect=20, pad_fraction=0.5, **kwargs):
+    """Add a vertical color bar to an image plot."""
+    divider = axes_grid1.make_axes_locatable(im.axes)
+    width = axes_grid1.axes_size.AxesY(im.axes, aspect=1. / aspect)
+    pad = axes_grid1.axes_size.Fraction(pad_fraction, width)
+    current_ax = plt.gca()
+    cax = divider.append_axes("right", size=width, pad=pad)
+    plt.sca(current_ax)
+    return im.axes.figure.colorbar(im, cax=cax, **kwargs)
+
 
 def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun', guess=None, project=[],theta=None):
     probDescription = sc.ProbDescription()
@@ -24,10 +36,13 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
     # initialize velocities - we stagger everything in the negative direction. A scalar cell owns its minus face, only.
     # Then, for example, the u velocity field has a ghost cell at x0 - dx and the plus ghost cell at lx
     np.random.seed(123)
-    u0 = np.random.rand(ny + 2, nx + 2)  # include ghost cells
-    # u0 = np.ones([ny +2, nx+2])# include ghost cells
+    mag = 10
+    u0 = np.random.rand(ny + 2, nx + 2)*mag  # include ghost cells
+    print(np.max(np.max(u0)))
+    # u0 = np.zeros([ny +2, nx+2])# include ghost cells
     # same thing for the y-velocity component
-    v0 = np.zeros([ny + 2, nx + 2])  # include ghost cells
+    # v0 = np.zeros([ny + 2, nx + 2])  # include ghost cells
+    v0 = np.random.rand(ny + 2, nx + 2)*mag  # include ghost cells
 
     Min = np.sum(np.ones_like(u0[1:ny+1,1]))
     Mout = np.sum(8*(yu[:ny+1,1]-yu[:ny+1,1]**2))
@@ -57,7 +72,33 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
 
     Coef = f.A_Lid_driven_cavity()
 
-    u0_free, v0_free, _, _ = f.ImQ_bcs(u0, v0, Coef, 0, p_bcs)
+    # # plot
+    # # -------------------------------------------
+    # ucc0 = 0.5 * (u0[1:-1, 2:] + u0[1:-1, 1:-1])
+    # vcc0 = 0.5 * (v0[2:, 1:-1] + v0[1:-1, 1:-1])
+    # speed0 = np.sqrt(ucc0 * ucc0 + vcc0 * vcc0)
+    #
+    # fig = plt.figure(figsize=(6.5, 4.01))
+    # ax = plt.axes()
+    # # velocity_mag0 = ax.pcolormesh(xcc, ycc, speed0)
+    # div0 = ax.pcolormesh(xcc, ycc, f.div(u0, v0)[1:-1, 1:-1])
+    # # add_colorbar(velocity_mag0,aspect=5 )
+    # add_colorbar(div0, aspect=5)
+    # # name = 'vel_mag.pdf'
+    # name = 'div_non_div_free_Ic.pdf'
+    # # vel = True
+    # vel = False
+    #
+    # if vel:
+    #     Q = ax.quiver(xcc[::1, ::10], ycc[::1, ::10], ucc0[::1, ::10], vcc0[::1, ::10],
+    #                   pivot='mid', units='inches', scale=5)
+    #     key = ax.quiverkey(Q, X=0.3, Y=1.05, U=1,
+    #                        label='Quiver key, length = 1m/s', labelpos='E')
+    #
+    # plt.savefig('./initial_cond/poisseille_flow/mag_{}/{}'.format(mag,name),dpi=300)
+    # plt.show()
+
+    u0_free, v0_free, phi, _ = f.ImQ_bcs(u0, v0, Coef, 0, p_bcs)
 
     f.top_wall(u0_free, v0_free, u_bc_top_wall, v_bc_top_wall)
     f.bottom_wall(u0_free, v0_free, u_bc_bottom_wall, v_bc_bottom_wall)
@@ -65,6 +106,36 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
     f.left_wall(u0_free, v0_free, u_bc_left_wall, v_bc_left_wall)
 
     print('div_u0=', np.linalg.norm(f.div(u0_free, v0_free).ravel()))
+
+    # # plot
+    # # -------------------------------------------
+    # ucc0 = 0.5 * (u0_free[1:-1, 2:] + u0_free[1:-1, 1:-1])
+    # vcc0 = 0.5 * (v0_free[2:, 1:-1] + v0_free[1:-1, 1:-1])
+    # speed0 = np.sqrt(ucc0 * ucc0 + vcc0 * vcc0)
+    #
+    # fig = plt.figure(figsize=(6.5, 4.01))
+    # ax = plt.axes()
+    # # velocity_mag0 = ax.pcolormesh(xcc, ycc, speed0)
+    # # div0 = ax.pcolormesh(xcc, ycc,f.div(u0_free, v0_free)[1:-1,1:-1])
+    # phi_free = ax.pcolormesh(xcc, ycc, phi[1:-1, 1:-1])
+    # # add_colorbar(velocity_mag0, aspect=5)
+    # # add_colorbar(div0, aspect=5)
+    # add_colorbar(phi_free, aspect=5)
+    # # vel = True
+    # vel = False
+    # # name = 'div_free_vel.pdf'
+    # # name = "divergence_new_vel.pdf"
+    # name = 'phi.pdf'
+    # # for velocity mag only
+    # if vel:
+    #     Q = ax.quiver(xcc[::1, ::10], ycc[::1, ::10], ucc0[::1, ::10], vcc0[::1, ::10],
+    #                   pivot='mid', units='inches', scale=5)
+    #     key = ax.quiverkey(Q, X=0.3, Y=1.05, U=1,
+    #                        label='Quiver key, length = 1m/s', labelpos='E')
+    #
+    # plt.savefig('./initial_cond/poisseille_flow/mag_{}/{}'.format(mag, name), dpi=300)
+    # plt.show()
+    # # ------------------------------------------------------------------------
 
     # initialize the pressure
     p0 = np.zeros([nx+2,ny+2]); # include ghost cells
@@ -76,9 +147,11 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
     div_np1= np.zeros_like(p0)
     # a bunch of lists for animation purposes
     usol=[]
+    # usol.append(u0)
     usol.append(u0_free)
 
     vsol=[]
+    # vsol.append(v0)
     vsol.append(v0_free)
 
     psol = []
@@ -218,7 +291,7 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
     else:
         return True, [div_np1], True, unp1[1:-1,1:-1].ravel()
 
-
+#
 # from singleton_classes import ProbDescription
 # #
 # Uinlet = 1
@@ -227,4 +300,4 @@ def error_normal_velocity_bcs_RK2 (steps = 3,return_stability=False, name='heun'
 # dx,dy = probDescription.dx, probDescription.dy
 # dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
 # probDescription.set_dt(dt)
-# error_normal_velocity_bcs_RK2 (steps = 2000,return_stability=False, name='heun', guess=None, project=[1],teta=0.25)
+# error_normal_velocity_bcs_RK2 (steps = 1,return_stability=False, name='heun', guess=None, project=[1])
