@@ -338,7 +338,7 @@ class func:
 
         return A1
 
-    def ImQ(self, uh, vh, Coef, Ainv):
+    def ImQ(self, uh, vh, Coef, p0, tol=None, atol=None):
         dx = self.probDescription.dx
         dy = self.probDescription.dy
         dt = self.probDescription.dt
@@ -368,7 +368,17 @@ class func:
             ml = pyamg.ruge_stuben_solver(A)
             ptmp = ml.solve(b, tol=1e-12, callback=callback)
             # ptmp = scipy.sparse.linalg.spsolve(A,b,callback=callback)
-            # ptmp,_ = scipy.sparse.linalg.cg(A, b, callback=callback)
+            # atol = 1e-5
+            # tol = 1e-10
+            # if atol!=None or tol!=None:
+            #     ptmp,_ = scipy.sparse.linalg.cg(A, b,p0[1:-1, 1:-1].ravel(),callback=callback,tol=tol)
+            # else:
+            #     ptmp, _ = scipy.sparse.linalg.cg(A, b, p0[1:-1, 1:-1].ravel(), callback=callback, tol=1e-12)
+
+            # if max(tol*np.linalg.norm(b,2),atol) == atol:
+            #     print('atol')
+            # else:
+            #     print('tol')
             return ptmp, num_iters
 
         ptmp, num_iters = solver(Coef, rhs)
@@ -387,7 +397,7 @@ class func:
 
         return unp1, vnp1, p, num_iters
 
-    def ImQ_bcs(self, uh, vh, Coef, Ainv,bcs_pressure,is_post_processing=False):
+    def ImQ_bcs(self, uh, vh, Coef, p0,bcs_pressure,is_post_processing=False,m_t=None, tol=None, atol=None):
         dx = self.probDescription.dx
         dy = self.probDescription.dy
         if is_post_processing:
@@ -421,12 +431,16 @@ class func:
                 nonlocal num_iters
                 num_iters += 1
 
-            ml = pyamg.ruge_stuben_solver(A)
-            ptmp = ml.solve(b, tol=1e-14, callback=callback)
-            # ptmp = Ainv@b
-            # ptmp = scipy.sparse.linalg.spsolve(A,b)
-            # ptmp,_ = scipy.sparse.linalg.cg(A, b, callback=callback)
-            num_iters=0
+            # ml = pyamg.ruge_stuben_solver(A)
+            # ptmp = ml.solve(b, tol=1e-12, callback=callback)
+            # ptmp = scipy.sparse.linalg.spsolve(A,b,callback=callback)
+            atol = 1e-5
+            tol = 1e-12
+            ptmp,_ = scipy.sparse.linalg.cg(A, b,p0[1:-1, 1:-1].ravel(),callback=callback,tol=tol)
+            # if max(tol*np.linalg.norm(b,2),atol) == atol:
+            #     print('atol')
+            # else:
+            #     print('tol')
             return ptmp, num_iters
 
         ptmp, num_iters = solver(Coef, rhs)
@@ -495,12 +509,16 @@ class func:
                 nonlocal num_iters
                 num_iters += 1
 
-            ml = pyamg.ruge_stuben_solver(A)
-            ptmp = ml.solve(b, tol=1e-12, callback=callback)
-            # ptmp = Ainv@b
-            # ptmp = scipy.sparse.linalg.spsolve(A,b)
-            # ptmp,_ = scipy.sparse.linalg.cg(A, b, callback=callback)
-            num_iters = 0
+            # ml = pyamg.ruge_stuben_solver(A)
+            # ptmp = ml.solve(b, tol=1e-12, callback=callback)
+            # ptmp = scipy.sparse.linalg.spsolve(A,b,callback=callback)
+            tol = 1e-12
+            atol = 1e-5
+            ptmp, _ = scipy.sparse.linalg.cg(A, b, p0[1:-1, 1:-1].ravel(), callback=callback, tol=tol)
+            if max(tol * np.linalg.norm(b, 2), atol) == atol:
+                print('atol')
+            else:
+                print('tol')
             return ptmp, num_iters
 
         ptmp, num_iters = solver(Coef, rhs)

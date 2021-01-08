@@ -64,8 +64,10 @@ def error_FE (steps=3, return_stability=False,alpha=0.99):
 
     psol = []
     psol.append(p0)
-    iterations = [0]
-    Coef = A(nx,ny,dx,dy)
+
+    iterations = []
+
+    Coef = scipy.sparse.csr_matrix.toarray(f.A())
 
     is_stable =True
     stability_counter =0
@@ -177,4 +179,4 @@ def error_FE (steps=3, return_stability=False,alpha=0.99):
     if return_iter:
         return diff, [div_np1], is_stable, int(statistics.mean(iterations)), int(sum(iterations))
     else:
-        return diff, [div_np1], is_stable, unp1[1:-1,1:].ravel()
+        return diff, [total_iteration], is_stable, unp1[1:-1, 1:].ravel()

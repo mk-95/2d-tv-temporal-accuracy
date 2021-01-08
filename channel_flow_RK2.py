@@ -70,7 +70,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
 
     Coef = f.A_channel_flow()
 
-    u0_free, v0_free, _, _ = f.ImQ_bcs(u0, v0, Coef, 0, p_bcs)
+    u0_free, v0_free, _, _ = f.ImQ_bcs(u0, v0, Coef, np.zeros([nx+2,ny+2]), p_bcs)
 
     f.top_wall(u0_free, v0_free, u_bc_top_wall, v_bc_top_wall)
     f.bottom_wall(u0_free, v0_free, u_bc_bottom_wall, v_bc_bottom_wall)
@@ -98,7 +98,8 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
 
     psol = []
     psol.append(p0)
-    iterations = [0]
+    iteration_i_2 = 0
+    iteration_np1 = 0
 
     while count < tend:
         print('timestep:{}'.format(count + 1))
@@ -115,13 +116,14 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
         if count > 1:
             pn = psol[-1].copy()
             pnm1 = psol[-2].copy()
-            f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name)
+            f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name,theta=theta)
             d2, = project
 
         elif count <= 1:  # compute pressures for 2 time steps
             d2 = 1
-            f1x, f1y = f.Guess([pn, pnm1], order=None, integ='RK2', type=name)
-
+            f1x, f1y = f.Guess([pn, pnm1], order=None, integ='RK2', type=name,theta=theta)
+            iteration_i_2 = 0
+            iteration_np1 = 0
         ## stage 1
 
         print('    Stage 1:')
@@ -155,9 +157,12 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
         f.right_wall(uh2, vh2, u_bc_right_wall(uh2[1:-1, -2]), v_bc_right_wall(vh2[1:,-1]))  # this won't change anything for u2
         f.left_wall(uh2, vh2, u_bc_left_wall, v_bc_left_wall)
 
+        press_stage_2=np.zeros([nx+2,ny+2])
+
         if d2 == 1:
             print('        pressure projection stage{} = True'.format(2))
-            u2, v2, _, iter1 = f.ImQ_bcs(uh2, vh2, Coef, pn,p_bcs)
+            u2, v2, press_stage_2, iter1 = f.ImQ_bcs(uh2, vh2, Coef, pn,p_bcs)
+            iteration_i_2 += iter1
             print('        iterations stage 2 = ', iter1)
         elif d2 == 0:
             u2 = uh2
@@ -183,7 +188,11 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
         f.right_wall(uhnp1, vhnp1, u_bc_right_wall(uhnp1[1:-1, -2]), v_bc_right_wall(vhnp1[1:,-1]))  # this won't change anything for u2
         f.left_wall(uhnp1, vhnp1, u_bc_left_wall, v_bc_left_wall)
 
-        unp1, vnp1, press, iter2 = f.ImQ_bcs(uhnp1, vhnp1, Coef, pn,p_bcs)
+        # unp1, vnp1, press, iter2 = f.ImQ_bcs(uhnp1, vhnp1, Coef, pn,p_bcs)
+        unp1, vnp1, press, iter2 = f.ImQ_bcs(uhnp1, vhnp1, Coef, press_stage_2,p_bcs)
+
+        iteration_np1 += iter2
+        print('iter_np1=',iter2)
 
         # apply bcs
         f.top_wall(unp1, vnp1, u_bc_top_wall, v_bc_top_wall)
@@ -204,7 +213,6 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
         # save new solutions
         usol.append(unp1)
         vsol.append(vnp1)
-        iterations.append(iter)
 
         Min = np.sum(unp1[1:ny+1,1])
         Mout = np.sum(unp1[1:ny+1,nx+1])
@@ -238,7 +246,7 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
     if return_stability:
         return True
     else:
-        return True, [div_np1], True, unp1[1:-1,1:-1].ravel()
+        return True, [iteration_i_2,iteration_np1], True, unp1[1:-1,1:-1].ravel()
 
 
 # from singleton_classes import ProbDescription
@@ -249,4 +257,4 @@ def error_channel_flow_RK2 (steps = 3,return_stability=False, name='heun', guess
 # dx,dy = probDescription.dx, probDescription.dy
 # dt = min(0.25*dx*dx/ν,0.25*dy*dy/ν, 4.0*ν/Uinlet/Uinlet)
 # probDescription.set_dt(dt)
-# error_channel_flow_RK2 (steps = 1,return_stability=False, name='heun', guess=None, project=[1])
+# error_channel_flow_RK2 (steps = 10,return_stability=False, name='heun', guess=None, project=[1])

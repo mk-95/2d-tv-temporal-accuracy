@@ -230,4 +230,4 @@ def error_RK3 (steps = 3,return_stability=False, name='regular',guess=None,proje
         return is_stable
 
     else:
-        return diff, [div_n,div2,div3,div_np1], is_stable, unp1[1:-1,1:].ravel()
+        return diff, [iter1,iter2,iter3], is_stable, unp1[1:-1,1:].ravel()

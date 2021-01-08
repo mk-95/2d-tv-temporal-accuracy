@@ -3,6 +3,7 @@ from functions import func
 import time
 import statistics
 import singleton_classes as sc
+import scipy
 
 
 def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=[1],alpha=0.9,theta=None):
@@ -63,7 +64,7 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
 
     iterations = []
 
-    Coef = f.A()
+    Coef = scipy.sparse.csr_matrix.toarray(f.A())
 
     is_stable = True
 
@@ -87,7 +88,8 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
     print('ken_new = ', ken_new)
     print('ken_exc = ', ken_exact)
     stability_counter = 0
-
+    iteration_i_2 = 0
+    iteration_np1 = 0
     while count < tend:
         print('timestep:{}'.format(count + 1))
         print('-----------')
@@ -108,8 +110,9 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
 
         elif count <= 1:  # compute pressures for 2 time steps
             d2 = 1
-            f1x, f1y = f.Guess([pn, pnm1], order=None, integ='RK2', type=name)
-
+            f1x, f1y = f.Guess([pn, pnm1], order=None, integ='RK2', type=name,theta=theta)
+            iteration_i_2 = 0
+            iteration_np1 = 0
         ## stage 1
 
         print('    Stage 1:')
@@ -133,7 +136,9 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
 
         if d2 == 1:
             print('        pressure projection stage{} = True'.format(2))
-            u2, v2, _, iter1 = f.ImQ(uh2, vh2, Coef, pn)
+            u2, v2, press_stage_2, iter1 = f.ImQ(uh2, vh2, Coef, pn)
+            # u2, v2, press_stage_2, iter1 = f.ImQ(uh2, vh2, Coef, (3*pn-pnm1)/2,tol=1e-10)
+            iteration_i_2 +=iter1
             print('        iterations stage 2 = ', iter1)
         elif d2 == 0:
             u2 = uh2
@@ -146,13 +151,17 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
         uhnp1 = u + dt * b1 * (urhs1) + dt * b2 * (urhs2)
         vhnp1 = v + dt * b1 * (vrhs1) + dt * b2 * (vrhs2)
 
-        unp1, vnp1, press, iter2 = f.ImQ(uhnp1, vhnp1, Coef, pn)
+        unp1, vnp1, press, iter2 = f.ImQ(uhnp1, vhnp1, Coef, pn,tol=1e-10)
+        # unp1, vnp1, press, iter2 = f.ImQ(uhnp1, vhnp1, Coef, (3*pn-pnm1)/2,atol=1e-6,tol=1e-16) # midpoint
+        # unp1, vnp1, press, iter2 = f.ImQ(uhnp1, vhnp1, Coef, press_stage_2)
 
-        # post processing projection
+        iteration_np1+=iter2
+
+        # # post processing projection
         # unp1r = dt * f.urhs(unp1, vnp1)
         # vnp1r = dt * f.vrhs(unp1, vnp1)
         #
-        # _, _, press, _ = f.ImQ_post_processing(unp1r, vnp1r, Coef, pn)
+        # _, _, press, _ = f.ImQ_post_processing(unp1r, vnp1r, Coef, press)
         time_end = time.clock()
         psol.append(press)
         cpu_time = time_end - time_start
@@ -223,4 +232,4 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
     if return_stability:
         return is_stable
     else:
-        return diff, [div_n, div2, div_np1], is_stable, unp1[1:-1, 1:].ravel()
+        return diff, [iteration_i_2, iteration_np1], is_stable, unp1[1:-1, 1:].ravel()

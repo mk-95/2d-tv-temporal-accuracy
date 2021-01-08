@@ -69,7 +69,7 @@ def error_channel_flow_FE (steps = 3,return_stability=False, name='', guess=None
     psol.append(p0)
     iterations = [0]
     Coef = f.A_channel_flow()
-
+    total_iters = 0
     while count < tend:
         print('timestep:{}'.format(count+1))
         print('-----------')
@@ -85,6 +85,8 @@ def error_channel_flow_FE (steps = 3,return_stability=False, name='', guess=None
         f.left_wall(uhnp1, vhnp1, u_bc_left_wall, v_bc_left_wall)
 
         unp1,vnp1,press, iter = f.ImQ_bcs(uhnp1,vhnp1,Coef,pn,p_bcs)
+
+        total_iters+=iter
 
         # apply bcs
         f.top_wall(unp1, vnp1, u_bc_top_wall, v_bc_top_wall)
@@ -132,8 +134,7 @@ def error_channel_flow_FE (steps = 3,return_stability=False, name='', guess=None
     if return_stability:
         return True
     else:
-        return True, [div_np1], True, unp1[1:-1,1:-1].ravel()
-
+        return True, [total_iters], True, unp1[1:-1, 1:-1].ravel()
 
 # from singleton_classes import ProbDescription
 # #
