@@ -210,8 +210,8 @@ def error_channel_flow_RK4 (steps = 3,return_stability=False, name='regular', gu
             u4, v4, _, iter1 = f.ImQ_bcs(uh4, vh4, Coef, pn, p_bcs)
             print('        iterations stage 4 = ', iter1)
         elif d4 == 0:
-            u4 = uh3
-            v4 = vh3
+            u4 = uh4
+            v4 = vh4
 
         # apply bcs
         f.top_wall(u4, v4, u_bc_top_wall, v_bc_top_wall)
@@ -241,18 +241,18 @@ def error_channel_flow_RK4 (steps = 3,return_stability=False, name='regular', gu
         f.right_wall(unp1, vnp1, u_bc_right_wall(unp1[1:-1, -1]),
                      v_bc_right_wall)  # this won't change anything for unp1
         f.left_wall(unp1, vnp1, u_bc_left_wall, v_bc_left_wall)
-
-        # post processing projection
-        unp1r =unp1+ dt * f.urhs_bcs(unp1, vnp1)
-        vnp1r =vnp1+ dt * f.vrhs_bcs(unp1, vnp1)
-
-        f.top_wall(unp1r, vnp1r, u_bc_top_wall, v_bc_top_wall)
-        f.bottom_wall(unp1r, vnp1r, u_bc_bottom_wall, v_bc_bottom_wall)
-        f.right_wall(unp1r, vnp1r, u_bc_right_wall(unp1r[1:-1, -2]),
-                     v_bc_right_wall)  # this won't change anything for unp1
-        f.left_wall(unp1r, vnp1r, u_bc_left_wall, v_bc_left_wall)
-
-        _, _, press, _ = f.ImQ_bcs(unp1r, vnp1r, Coef, pn, p_bcs)
+        #
+        # # post processing projection
+        # unp1r =unp1+ dt * f.urhs_bcs(unp1, vnp1)
+        # vnp1r =vnp1+ dt * f.vrhs_bcs(unp1, vnp1)
+        #
+        # f.top_wall(unp1r, vnp1r, u_bc_top_wall, v_bc_top_wall)
+        # f.bottom_wall(unp1r, vnp1r, u_bc_bottom_wall, v_bc_bottom_wall)
+        # f.right_wall(unp1r, vnp1r, u_bc_right_wall(unp1r[1:-1, -2]),
+        #              v_bc_right_wall)  # this won't change anything for unp1
+        # f.left_wall(unp1r, vnp1r, u_bc_left_wall, v_bc_left_wall)
+        #
+        # _, _, press, _ = f.ImQ_bcs(unp1r, vnp1r, Coef, pn, p_bcs)
 
         time_end = time.clock()
         psol.append(press)
