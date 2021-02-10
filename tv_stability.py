@@ -96,9 +96,10 @@ def bisect_CFL(CFLs,mu,old_CFL_low=0,old_is_stable_low=0,tol=1e-2):
 
 integ = "RK21-"
 for Re in Res:
-    CFL_max,CFL_min = (4,0.1)
-    dx = 1/32
+    CFL_max,CFL_min = (4,0.5)
+    dx,dy = probDescription.get_differential_elements()
     mu = U*dx/Re
+    probDescription.set_mu(mu)
     CFL,err,stable_low, stable_high = bisect_CFL([CFL_max,CFL_min],mu)
     with open("{}-stability.txt".format(integ), "a") as myfile:
         myfile.write("{},{},{},{},{}".format(CFL,Re,err,stable_low, stable_high))
