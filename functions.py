@@ -441,12 +441,12 @@ class func:
                 nonlocal num_iters
                 num_iters += 1
 
-            # ml = pyamg.ruge_stuben_solver(A)
-            # ptmp = ml.solve(b, tol=1e-12, callback=callback)
+            ml = pyamg.ruge_stuben_solver(A)
+            ptmp = ml.solve(b, tol=1e-16, callback=callback)
             # ptmp = scipy.sparse.linalg.spsolve(A,b,callback=callback)
             atol = 1e-5
             tol = 1e-12
-            ptmp,_ = scipy.sparse.linalg.cg(A, b,p0[1:-1, 1:-1].ravel(),callback=callback,tol=tol)
+            # ptmp,_ = scipy.sparse.linalg.cg(A, b,p0[1:-1, 1:-1].ravel(),callback=callback,tol=tol)
             # if max(tol*np.linalg.norm(b,2),atol) == atol:
             #     print('atol')
             # else:
@@ -668,6 +668,26 @@ class func:
                 f3x = Pnx + (a31 + a32) * dt * Pnx_p + a32 * a21 * dt * dt * Pnx_pp
                 f3y = Pny + (a31 + a32) * dt * Pny_p + a32 * a21 * dt * dt * Pny_pp
 
+            elif order =='new-third':
+                dt = self.probDescription.get_dt()
+                Pnx = 11*Gpnx/6 -7*Gpnm1x/6 + Gpnm2x/3
+                Pny = 11*Gpny/6 -7*Gpnm1y/6 + Gpnm2y/3
+
+                Pnx_p = (2 * Gpnx - 3 * Gpnm1x + Gpnm2x) / dt  # Pnx'  # from lagrange polynomial jupyter notebook
+                Pny_p = (2 * Gpny - 3 * Gpnm1y + Gpnm2y) / dt  # Pny'
+
+                Pnx_pp = (Gpnx - 2 * Gpnm1x + Gpnm2x) / dt / dt  # Pnx''
+                Pny_pp = (Gpny - 2 * Gpnm1y + Gpnm2y) / dt / dt  # Pny''
+
+                f1x = Pnx
+                f1y = Pny
+
+                f2x = Pnx + a21 * dt * Pnx_p
+                f2y = Pny + a21 * dt * Pny_p
+
+                f3x = Pnx + (a31 + a32) * dt * Pnx_p + a32 * a21 * dt * dt * Pnx_pp
+                f3y = Pny + (a31 + a32) * dt * Pny_p + a32 * a21 * dt * dt * Pny_pp
+
             elif order == None:
                 f1x = np.zeros_like(pn)
                 f1y = np.zeros_like(pn)
@@ -700,6 +720,18 @@ class func:
             elif order == 'second':
                 f1x = Gpnx + (Gpnx - Gpnm1x) / 2
                 f1y = Gpny + (Gpny - Gpnm1y) / 2
+                f2x = f1x + (a21) * (Gpnx - Gpnm1x)
+                f2y = f1y + (a21) * (Gpny - Gpnm1y)
+
+            elif order == 'third':
+                pnm2 = pold[2]
+                Gpnm2x = self.Gpx(pnm2)
+                Gpnm2y = self.Gpy(pnm2)
+
+                # f1x = 5.0*Gpnx/3 - 5.0*Gpnm1x / 6 + 1.0*Gpnm2x/6
+                # f1y = 5.0*Gpny/3 - 5.0*Gpnm1y / 6 + 1.0*Gpnm2y/6
+                f1x = 11 * Gpnx / 6 - 7.0 * Gpnm1x / 6 + 1.0 * Gpnm2x / 3
+                f1y = 11 * Gpny / 6 - 7.0 * Gpnm1y / 6 + 1.0 * Gpnm2y / 3
                 f2x = f1x + (a21) * (Gpnx - Gpnm1x)
                 f2y = f1y + (a21) * (Gpny - Gpnm1y)
 
