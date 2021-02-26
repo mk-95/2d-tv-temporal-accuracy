@@ -4,7 +4,7 @@ import time
 import statistics
 import singleton_classes as sc
 import scipy
-
+import matplotlib.pyplot as plt
 
 def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=[1],alpha=0.9,theta=None):
     # problem description
@@ -24,6 +24,14 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
     vexact = lambda a, b, x, y, t: vf + np.sin(a * (x - uf * t)) * np.cos(b * (y - vf * t)) * np.exp(
         -(a ** 2 + b ** 2) * μ * t)
 
+    pexact=lambda x,y,t: (-8 * np.sin(np.pi * t) ** 4 * np.sin(np.pi * y) ** 4 - 2 * np.sin(np.pi * t) ** 4 - 2 * np.sin(np.pi * y) ** 4 - 5 * np.cos(
+        2 * np.pi * t) / 2 + 5 * np.cos(4 * np.pi * t) / 8 - 5 * np.cos(2 * np.pi * y) / 2 + 5 * np.cos(4 * np.pi * y) / 8 - np.cos(
+        np.pi * (2 * t - 4 * y)) / 4 + np.cos(np.pi * (2 * t - 2 * y)) + np.cos(np.pi * (2 * t + 2 * y)) - np.cos(
+        np.pi * (2 * t + 4 * y)) / 4 - 3 * np.cos(np.pi * (4 * t - 4 * y)) / 16 - np.cos(np.pi * (4 * t - 2 * y)) / 4 - np.cos(
+        np.pi * (4 * t + 2 * y)) / 4 + np.cos(np.pi * (4 * t + 4 * y)) / 16 + 27 / 8) * np.exp(-16 * np.pi ** 2 * μ * t) - np.exp(
+        -16 * np.pi ** 2 * μ * t) * np.cos(np.pi * (-4 * t + 4 * x)) / 4
+
+    dpdxexact = lambda x,t:-np.pi*np.exp(-16*np.pi**2*μ*t)*np.sin(np.pi*(4*t - 4*x))
     #     # define some boiler plate
     t = 0.0
     tend = steps
@@ -102,13 +110,15 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
         v = vsol[-1].copy()
         pn = np.zeros_like(u)
         pnm1 = np.zeros_like(u)
-        if count > 1:
+        # pnm2 = np.zeros_like(u)
+        if count > 1: # change to 2 if high order pressure is needed
             pn = psol[-1].copy()
             pnm1 = psol[-2].copy()
+            # pnm2 = psol[-3].copy()# only needed for high order pressure
             f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name,theta=theta)
             d2, = project
 
-        elif count <= 1:  # compute pressures for 2 time steps
+        elif count <= 1:  # compute pressures for 2 time steps # change to 2 if high order pressure is needed
             d2 = 1
             f1x, f1y = f.Guess([pn, pnm1], order=None, integ='RK2', type=name,theta=theta)
             iteration_i_2 = 0
@@ -154,6 +164,8 @@ def error_RK2(steps=3, return_stability=False, name='heun', guess=None, project=
         unp1, vnp1, press, iter2 = f.ImQ(uhnp1, vhnp1, Coef, pn,tol=1e-10)
         # unp1, vnp1, press, iter2 = f.ImQ(uhnp1, vhnp1, Coef, (3*pn-pnm1)/2,atol=1e-6,tol=1e-16) # midpoint
         # unp1, vnp1, press, iter2 = f.ImQ(uhnp1, vhnp1, Coef, press_stage_2)
+
+        # new_press =  4*pn -9*pnm1/ 2 +3 * pnm2 / 2 #second order (working)
 
         iteration_np1+=iter2
 

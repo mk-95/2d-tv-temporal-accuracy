@@ -99,9 +99,11 @@ def error_channel_flow_RK3 (steps = 3,return_stability=False, name='heun', guess
         v = vsol[-1].copy()
         pn = np.zeros_like(u)
         pnm1 = np.zeros_like(u)
+        # pnm2 = np.zeros_like(u) # only needed for high order pressure
         if count > 2:
             pn = psol[-1].copy()
             pnm1 = psol[-2].copy()
+            # pnm2 = psol[-3].copy()# only needed for high order pressure
             f1x, f1y, f2x, f2y = f.Guess([pn, pnm1], order=guess, integ='RK3', type=name)
             d2,d3 = project
 
@@ -204,6 +206,11 @@ def error_channel_flow_RK3 (steps = 3,return_stability=False, name='heun', guess
         f.left_wall(unp1, vnp1, u_bc_left_wall, v_bc_left_wall)
 
         time_end = time.clock()
+
+        # new_press = 23*pn/6 -25*pnm1/6 +4*pnm2/3 #(second order working)
+        #new_press = 13*pn/3 -31*pnm1/6 +11*pnm2/6 #(third order working)
+
+
         psol.append(press)
         cpu_time = time_end - time_start
         print('        cpu_time=', cpu_time)

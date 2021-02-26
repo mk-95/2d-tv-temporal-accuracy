@@ -18,6 +18,7 @@ def error_RK3 (steps = 3,return_stability=False, name='regular',guess=None,proje
     uexact = lambda a, b, x, y, t: 1 - np.cos(a*(x - t))*np.sin(b*(y - t))*np.exp(-(a**2 + b**2)*μ*t)
     vexact = lambda a, b, x, y, t: 1 + np.sin(a*(x - t))*np.cos(b*(y - t))*np.exp(-(a**2 + b**2)*μ*t)
 
+    dpdxexact = lambda x, t: -np.pi * np.exp(-16 * np.pi ** 2 * μ * t) * np.sin(np.pi * (4 * t - 4 * x))
     t = 0.0
     tend = steps
     count = 0
@@ -96,9 +97,11 @@ def error_RK3 (steps = 3,return_stability=False, name='regular',guess=None,proje
         v = vsol[-1].copy()
         pn = np.zeros_like(u)
         pnm1 =  np.zeros_like(u)
+        # pnm2 =  np.zeros_like(u) # uncomment when high accuracy pressure is needed
         if count >2:
             pn = psol[-1].copy()
             pnm1 = psol[-2].copy()
+            # pnm2 = psol[-3].copy()# uncomment when high accuracy pressure is needed
 
             d1=0
             d2,d3 = project
@@ -168,6 +171,11 @@ def error_RK3 (steps = 3,return_stability=False, name='regular',guess=None,proje
         # vnp1r =dt*f.vrhs(unp1,vnp1)
         #
         # _,_,press,_ = f.ImQ_post_processing(unp1r,vnp1r,Coef,pn)
+
+        # new_press = 23*pn/6 -25*pnm1/6 +4*pnm2/3 #(second order working)
+        # new_press = 13*pn/3 -31*pnm1/6 +11*pnm2/6 #(third order working)
+        # new_press = 155*pn/24 -277*pnm1/24 +197*pnm2/24 -17*pnm3/8 #(at most third)
+
         time_end = time.clock()
         psol.append(press)
         cpu_time = time_end - time_start

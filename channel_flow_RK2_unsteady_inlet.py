@@ -97,15 +97,17 @@ def error_channel_flow_RK2_unsteady_inlet (steps = 3,return_stability=False, nam
         v = vsol[-1].copy()
         pn = np.zeros_like(u)
         pnm1 = np.zeros_like(u)
-        if count > 1:
+        # pnm2 = np.zeros_like(u) # only needed for high accurate pressure
+        if count > 1: # change the count for 2 if high accurate pressure at time np1 is needed
             pn = psol[-1].copy()
             pnm1 = psol[-2].copy()
-            f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name)
+            # pnm2 = psol[-3].copy() # only needed for high accurate pressure
+            f1x, f1y = f.Guess([pn, pnm1], order=guess, integ='RK2', type=name,theta=theta)
             d2, = project
 
-        elif count <= 1:  # compute pressures for 2 time steps
+        elif count <= 1:   # compute pressures for 2 time steps # change the count for 2 if high accurate pressure at time np1 is needed
             d2 = 1
-            f1x, f1y = f.Guess([pn, pnm1], order=None, integ='RK2', type=name)
+            f1x, f1y = f.Guess([pn, pnm1], order=None, integ='RK2', type=name,theta=theta)
 
         ## stage 1
 
@@ -178,6 +180,9 @@ def error_channel_flow_RK2_unsteady_inlet (steps = 3,return_stability=False, nam
 
         time_end = time.clock()
         psol.append(press)
+
+        # new_press = 4 * pn - 9 * pnm1 / 2 + 3 * pnm2 / 2  # second order (working)
+
         cpu_time = time_end - time_start
         print('        cpu_time=',cpu_time)
         # Check mass residual

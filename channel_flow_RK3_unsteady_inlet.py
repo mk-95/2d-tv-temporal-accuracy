@@ -101,13 +101,15 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
         v = vsol[-1].copy()
         pn = np.zeros_like(u)
         pnm1 = np.zeros_like(u)
-        if count > 2:
+        # pnm2 = np.zeros_like(u) # only needed for high order pressure
+        if count > 2: # change this to 3 if high order pressure is needed
             pn = psol[-1].copy()
             pnm1 = psol[-2].copy()
+            # pnm2 = psol[-3].copy() # only needed for high order pressure
             f1x, f1y, f2x, f2y = f.Guess([pn, pnm1], order=guess, integ='RK3', type=name)
             d2,d3 = project
 
-        elif count <= 2:  # compute pressures for 3 time steps
+        elif count <= 2:  # compute pressures for 3 time steps # change this to 3 if high order pressure is needed
             d2 = 1
             d3 = 1
             f1x, f1y, f2x, f2y = f.Guess([pn, pnm1], order=None, integ='RK3', type=name)
@@ -206,20 +208,24 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
         f.left_wall(unp1, vnp1, u_bc_left_wall(t+dt), v_bc_left_wall(t+dt))
 
         # post processing projection
-        new_dt =probDescription.dt_post_processing
-        unp1r = unp1 + new_dt* f.urhs_bcs(unp1, vnp1)
-        vnp1r = vnp1 + new_dt * f.vrhs_bcs(unp1, vnp1)
+        # new_dt =probDescription.dt_post_processing
+        # unp1r = unp1 + new_dt* f.urhs_bcs(unp1, vnp1)
+        # vnp1r = vnp1 + new_dt * f.vrhs_bcs(unp1, vnp1)
 
-        f.top_wall(unp1r, vnp1r, u_bc_top_wall, v_bc_top_wall)
-        f.bottom_wall(unp1r, vnp1r, u_bc_bottom_wall, v_bc_bottom_wall)
-        f.right_wall(unp1r, vnp1r, u_bc_right_wall(unp1r[1:-1, -2]),
-                     v_bc_right_wall)  # this won't change anything for unp1
-        f.left_wall(unp1r, vnp1r, u_bc_left_wall(t + new_dt), v_bc_left_wall(t + new_dt))
-        probDescription.set_dt_post_processing(new_dt)
-        _, _, press, _ = f.ImQ_bcs(unp1r, vnp1r, Coef, pn, p_bcs,True)
+        # f.top_wall(unp1r, vnp1r, u_bc_top_wall, v_bc_top_wall)
+        # f.bottom_wall(unp1r, vnp1r, u_bc_bottom_wall, v_bc_bottom_wall)
+        # f.right_wall(unp1r, vnp1r, u_bc_right_wall(unp1r[1:-1, -2]),
+        #              v_bc_right_wall)  # this won't change anything for unp1
+        # f.left_wall(unp1r, vnp1r, u_bc_left_wall(t + new_dt), v_bc_left_wall(t + new_dt))
+        # probDescription.set_dt_post_processing(new_dt)
+        # _, _, press, _ = f.ImQ_bcs(unp1r, vnp1r, Coef, pn, p_bcs,True)
 
         time_end = time.clock()
         psol.append(press)
+
+        # new_press = 23*pn/6 -25*pnm1/6 +4*pnm2/3 #(second order working)
+        # new_press = 13 * pn / 3 - 31 * pnm1 / 6 + 11 * pnm2 / 6  # (third order working)
+
         cpu_time = time_end - time_start
         print('        cpu_time=', cpu_time)
         # Check mass residual
@@ -258,7 +264,7 @@ def error_channel_flow_RK3_unsteady_inlet (steps = 3,return_stability=False, nam
     if return_stability:
         return True
     else:
-        return True, [div_np1], True, press[1:-1, 1:-1].ravel()
+        return True, [div_np1], True, unp1[1:-1, 1:-1].ravel()
 
 
 # from singleton_classes import ProbDescription
