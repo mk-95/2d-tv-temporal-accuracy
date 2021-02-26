@@ -619,6 +619,11 @@ class func:
 
             Gpnm2x = self.Gpx(pnm2)
             Gpnm2y = self.Gpy(pnm2)
+
+            pnm3 = pold[3]
+            Gpnm3x = self.Gpx(pnm3)
+            Gpnm3y = self.Gpy(pnm3)
+
             f2x = np.zeros_like(Gpnx)
             f2y = np.zeros_like(Gpny)
 
@@ -646,7 +651,7 @@ class func:
                 f3y = Pny + (a31 + a32) * dt * Pny_p + a32 * a21 * dt*dt* Pny_pp
 
 
-            elif order =='third':
+            elif order =='second':
                 dt = self.probDescription.get_dt()
                 # Pnx = (15 * Gpnx - 10 * Gpnm1x + 3 * Gpnm2x) / 8
                 Pnx = Gpnx +  (Gpnx - Gpnm1x)/2
@@ -668,16 +673,16 @@ class func:
                 f3x = Pnx + (a31 + a32) * dt * Pnx_p + a32 * a21 * dt * dt * Pnx_pp
                 f3y = Pny + (a31 + a32) * dt * Pny_p + a32 * a21 * dt * dt * Pny_pp
 
-            elif order =='new-third':
+            elif order =='third':
                 dt = self.probDescription.get_dt()
-                Pnx = 11*Gpnx/6 -7*Gpnm1x/6 + Gpnm2x/3
-                Pny = 11*Gpny/6 -7*Gpnm1y/6 + Gpnm2y/3
+                Pnx = 25*Gpnx/12 -23*Gpnm1x/12 + 13*Gpnm2x/12 - Gpnm3x/4
+                Pny = 25*Gpny/12 -23*Gpnm1y/12 + 13*Gpnm2y/12 - Gpnm3y/4
 
-                Pnx_p = (2 * Gpnx - 3 * Gpnm1x + Gpnm2x) / dt  # Pnx'  # from lagrange polynomial jupyter notebook
-                Pny_p = (2 * Gpny - 3 * Gpnm1y + Gpnm2y) / dt  # Pny'
+                Pnx_p = (35*Gpnx/12 - 23 * Gpnm1x/4 + 15*Gpnm2x/4 - 11*Gpnm3x/12) / dt  # Pnx'
+                Pny_p = (35*Gpny/12 - 23 * Gpnm1y/4 + 15*Gpnm2y/4 - 11*Gpnm3y/12) / dt  # Pny'
 
-                Pnx_pp = (Gpnx - 2 * Gpnm1x + Gpnm2x) / dt / dt  # Pnx''
-                Pny_pp = (Gpny - 2 * Gpnm1y + Gpnm2y) / dt / dt  # Pny''
+                Pnx_pp = (5*Gpnx/2 - 13 * Gpnm1x/2 + 11*Gpnm2x/2 - 3*Gpnm3x/2) / dt / dt  # Pnx''
+                Pny_pp = (5*Gpny/2 - 13 * Gpnm1y/2 + 11*Gpnm2y/2 - 3*Gpnm3y/2) / dt / dt  # Pny''
 
                 f1x = Pnx
                 f1y = Pny
