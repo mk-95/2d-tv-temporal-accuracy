@@ -204,3 +204,34 @@ class RK4:
             self.b2 = -1.0 / 18.0
             self.b3 = 2.0 / 3.0
             self.b4 = 2.0 / 9.0
+
+
+@SingletonDecorator
+class DIRK2:
+    def __init__(self, name, theta=None):
+        self.name = name
+        self.theta=theta
+        self.coefs()
+
+    def coefs(self):
+        if self.name == 'midpoint':
+            # this is a first order method
+            self.a11 = 1.0 / 2.0
+            self.a21 = -1.0 / 2.0
+            self.a22 =  2.0
+            self.b1 = -1.0 / 2.0
+            self.b2 = 3.0 / 2.0
+
+        elif self.name == 'qz':
+            self.a11 = 1.0 / 4.0
+            self.a21 = 1.0 / 2.0
+            self.a22 = 1.0 / 4.0
+            self.b1 = 1.0 / 2.0
+            self.b2 = 1.0 / 2.0
+
+        elif self.name =='pr':
+            self.a11 = self.theta
+            self.a21 = 1.0 - 2.0* self.theta
+            self.a22 = self.theta
+            self.b1 = 1.0 / 2.0
+            self.b2 = 1.0 / 2.0

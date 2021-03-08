@@ -4,7 +4,8 @@ import scipy.sparse
 import scipy.sparse.linalg
 import pyamg
 import time
-from singleton_classes import RK4, RK3, RK2
+from scipy.optimize import fsolve
+from singleton_classes import RK4, RK3, RK2,DIRK2
 from tensorflow.keras.models import model_from_json
 # from tf_siren import SIRENModel, SinusodialRepresentationDense, SIRENInitializer
 from tf_siren.siren import *
@@ -218,6 +219,105 @@ class func:
         if self.bcs_type == "periodic":
             self.periodic_v(gpy)
         return gpy
+
+    def DIRK_S1(self,u_n,v_n,p_n,integ):
+        dt = self.probDescription.dt
+        size_x, size_y = u_n.shape
+        flat_size = size_x * size_y
+        a11 = integ.a11
+        def residual_function(x, data_n):
+            oldVals = data_n[0]
+            uold = oldVals[:flat_size]
+            vold = oldVals[flat_size:]
+            uold = uold.reshape(size_y, size_x)
+            vold = vold.reshape(size_y, size_x)
+            u_r = x[:flat_size]
+            v_r = x[flat_size:2 * flat_size]
+            p_r = x[2 * flat_size:]
+            u_it = u_r.reshape(size_y, size_x)
+            v_it = v_r.reshape(size_y, size_x)
+            p_it = p_r.reshape(size_y, size_x)
+            self.periodic_u(u_it)
+            self.periodic_v(v_it)
+            self.periodic_scalar(p_it)
+            F1 = (u_it - uold) / dt - a11*(self.urhs(u_it, v_it) - self.Gpx(p_it))
+            F2 = (v_it - vold) / dt - a11*(self.vrhs(u_it, v_it) - self.Gpy(p_it))
+            F3 = (self.div(self.Gpx(p_it), self.Gpy(p_it)) - self.div(self.urhs(u_it, v_it),
+                                                                  self.vrhs(u_it, v_it))) - self.div(uold, vold) / dt/a11
+            F = np.append(F1.ravel(), F2.ravel())
+            F = np.append(F, F3.ravel())
+            # print('it Norm = ',np.linalg.norm(F,np.inf))
+
+            return F
+
+        guesses = np.append(u_n.ravel(), v_n.ravel())
+        guesses = np.append(guesses, p_n.ravel())
+
+        data_n = np.append(u_n.ravel(), v_n.ravel())
+        sol, info, _, _ = fsolve(residual_function, guesses, args=[data_n],xtol=1e-11, full_output=True)
+        u_f = sol[:flat_size]
+        v_f = sol[flat_size:2 * flat_size]
+        p_f = sol[2 * flat_size:]
+        u_sol = u_f.reshape(size_y, size_x)
+        v_sol = v_f.reshape(size_y, size_x)
+        p_sol = p_f.reshape(size_y, size_x)
+        self.periodic_u(u_sol)
+        self.periodic_v(v_sol)
+        self.periodic_scalar(p_sol)
+        return u_sol, v_sol, p_sol, info
+
+    def DIRK_S2(self,u_n,v_n,p_n,rhs_u1,rhs_v1,integ):
+        dt = self.probDescription.dt
+        size_x, size_y = u_n.shape
+        flat_size = size_x * size_y
+        a11 = integ.a11
+        a21 = integ.a21
+        a22 = integ.a22
+        def residual_function(x, data_n):
+            oldVals = data_n[0]
+            rhsVals = data_n[1]
+            rhs_u1_r = rhsVals[:flat_size]
+            rhs_v1_r = rhsVals[flat_size:]
+            rhs_u1 = rhs_u1_r.reshape(size_y, size_x)
+            rhs_v1 = rhs_v1_r.reshape(size_y, size_x)
+            uold = oldVals[:flat_size]
+            vold = oldVals[flat_size:]
+            uold = uold.reshape(size_y, size_x)
+            vold = vold.reshape(size_y, size_x)
+            u_r = x[:flat_size]
+            v_r = x[flat_size:2 * flat_size]
+            p_r = x[2 * flat_size:]
+            u_it = u_r.reshape(size_y, size_x)
+            v_it = v_r.reshape(size_y, size_x)
+            p_it = p_r.reshape(size_y, size_x)
+            self.periodic_u(u_it)
+            self.periodic_v(v_it)
+            self.periodic_scalar(p_it)
+            F1 = (u_it - uold) / dt - a21 * rhs_u1 - a22 * (self.urhs(u_it, v_it) - self.Gpx(p_it))
+            F2 = (v_it - vold) / dt - a21 * rhs_v1 - a22 * (self.vrhs(u_it, v_it) - self.Gpy(p_it))
+            F3 = (self.div(self.Gpx(p_it), self.Gpy(p_it)) - self.div(self.urhs(u_it, v_it),self.vrhs(u_it, v_it))) -a21*self.div(rhs_u1,rhs_v1)/a22- self.div(uold, vold) / dt/a22
+            F = np.append(F1.ravel(), F2.ravel())
+            F = np.append(F, F3.ravel())
+            # print('it Norm = ',np.linalg.norm(F,np.inf))
+
+            return F
+
+        guesses = np.append(u_n.ravel(), v_n.ravel())
+        guesses = np.append(guesses, p_n.ravel())
+
+        data_n = np.append(u_n.ravel(), v_n.ravel())
+        rhs_1 = np.append(rhs_u1.ravel(),rhs_v1.ravel())
+        sol, info, _, _ = fsolve(residual_function, guesses, args=[data_n,rhs_1],xtol=1e-11, full_output=True)
+        u_f = sol[:flat_size]
+        v_f = sol[flat_size:2 * flat_size]
+        p_f = sol[2 * flat_size:]
+        u_sol = u_f.reshape(size_y, size_x)
+        v_sol = v_f.reshape(size_y, size_x)
+        p_sol = p_f.reshape(size_y, size_x)
+        self.periodic_u(u_sol)
+        self.periodic_v(v_sol)
+        self.periodic_scalar(p_sol)
+        return u_sol, v_sol, p_sol, info
 
     # defining pressure matrix
 
