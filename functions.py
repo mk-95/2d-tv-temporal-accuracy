@@ -220,6 +220,51 @@ class func:
             self.periodic_v(gpy)
         return gpy
 
+    def BackwardEuler(self,u_n,v_n,p_n):
+        dt = self.probDescription.dt
+        size_x, size_y = u_n.shape
+        flat_size = size_x * size_y
+
+        def residual_function(x, data_n):
+            oldVals = data_n[0]
+            uold = oldVals[:flat_size]
+            vold = oldVals[flat_size:]
+            uold = uold.reshape(size_y, size_x)
+            vold = vold.reshape(size_y, size_x)
+            u_r = x[:flat_size]
+            v_r = x[flat_size:2 * flat_size]
+            p_r = x[2 * flat_size:]
+            u_it = u_r.reshape(size_y, size_x)
+            v_it = v_r.reshape(size_y, size_x)
+            p_it = p_r.reshape(size_y, size_x)
+            self.periodic_u(u_it)
+            self.periodic_v(v_it)
+            self.periodic_scalar(p_it)
+            f1 = (u_it - uold)/dt -  (self.urhs(u_it, v_it) - self.Gpx(p_it))
+            f2 = (v_it - vold)/dt -  (self.vrhs(u_it, v_it) - self.Gpy(p_it))
+            f3 = (self.div(self.Gpx(p_it), self.Gpy(p_it)) - self.div(self.urhs(u_it, v_it), self.vrhs(u_it, v_it)) ) - self.div(uold,vold)/dt
+            F = np.append(f1.ravel(), f2.ravel())
+            F = np.append(F, f3.ravel())
+            # print('it Norm = ',np.linalg.norm(F,np.inf))
+
+            return F
+
+        guesses = np.append(u_n.ravel(), v_n.ravel())
+        guesses = np.append(guesses, p_n.ravel())
+
+        data_n = np.append(u_n.ravel(), v_n.ravel())
+        sol, info, _, _ = fsolve(residual_function, guesses, args=[data_n],xtol=1e-11, full_output=True)
+        u_f = sol[:flat_size]
+        v_f = sol[flat_size:2 * flat_size]
+        p_f = sol[2 * flat_size:]
+        u_sol = u_f.reshape(size_y, size_x)
+        v_sol = v_f.reshape(size_y, size_x)
+        p_sol = p_f.reshape(size_y, size_x)
+        self.periodic_u(u_sol)
+        self.periodic_v(v_sol)
+        self.periodic_scalar(p_sol)
+        return u_sol, v_sol, p_sol, info
+
     def DIRK_S1(self,u_n,v_n,p_n,integ):
         dt = self.probDescription.dt
         size_x, size_y = u_n.shape
