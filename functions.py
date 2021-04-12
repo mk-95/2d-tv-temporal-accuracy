@@ -70,6 +70,146 @@ class func:
         u[1:-1, -1] = u_func(yu)
         v[1:,-1] = 2.0*v_func(yv) - v[1:,-2]
 
+    def Newton_solver(self,guesses:list,old_vals:list,residual_funcs:list,bcs_func:list,Jacobian_builder,Tol,verbose=False,ghost_cells=2):
+        info = {"non-linear-iterations_res":{}}
+        num = len(guesses) # number of residual functions
+        size = 0
+        num_eq = 0
+        num_eq_per_guess = [0]
+        num_eq_per_guess_wgc = [0] # including ghost cells
+        size_guess = []
+        size_guess_ngc = [] # size without ghost cells
+        for i in range(num):
+            size_y, size_x = guesses[0].shape
+            size_guess.append((size_y,size_x))
+            num_eq_per_guess_wgc.append(num_eq_per_guess_wgc[-1]+size_y*size_x)
+            nx = size_x - ghost_cells
+            ny = size_y - ghost_cells
+            num_eq_per_guess.append(num_eq_per_guess[-1] + nx*ny)
+            size_guess_ngc.append((ny,nx))
+            num_eq+= nx*ny
+            size += size_x*size_y
+
+        info['num_equations'] = num_eq
+        num_eq_per_guess.append(-1)
+        num_eq_per_guess_wgc.append(-1)
+
+        delta = np.zeros(num_eq)
+
+        initial_guess = None
+        if num == 1:
+            initial_guess=guesses[0].ravel()
+        else:
+            initial_guess = np.append(guesses[0].ravel(),guesses[1].ravel())
+
+            if num >=2:
+                for i in range(2,num):
+                    initial_guess = np.append(initial_guess,guesses[i].ravel())
+
+        lastX = initial_guess
+
+        nextX = lastX + 10 *Tol # "different than lastX so loop starts OK
+
+        res = np.linalg.norm((lastX - nextX),np.inf)
+
+        deltas = []
+        for i in range(num):
+            deltas.append(np.zeros_like(guesses[i]))
+
+        non_linear_iterations = 0
+        info_cg=None
+        info['condition_num'] = []
+        while (res > Tol):  # this is how you terminate the loop
+            lastX = nextX
+
+            # guesses_k = [lastX[:num_eq_per_guess_wgc[1]].reshape(size_guess[0][0],size_guess[0][1])]
+            guesses_k = []
+            # for i in range(1,num-2):
+            for i in range(num):
+                size_y,size_x = size_guess[i]
+                guesses_k.append(lastX[num_eq_per_guess_wgc[i]:num_eq_per_guess_wgc[i+1]].reshape(size_y, size_x))
+            # guesses_k.append(lastX[num_eq_per_guess_wgc[num-1]:].reshape(size_guess[num-1][0], size_guess[num-1][1]))
+
+            # apply boundary conditions
+            for i in range(num):
+                bcs_func[i](guesses_k[i])
+
+            # residual functions
+            F = None
+            if num == 1:
+                F = residual_funcs[0](*old_vals)(*guesses_k)[1:-1,1:-1].ravel()
+            else:
+                F = np.append(residual_funcs[0](*old_vals)(*guesses_k)[1:-1,1:-1].ravel(), residual_funcs[1](*old_vals)(*guesses_k)[1:-1,1:-1].ravel())
+                if num >= 2:
+                    for i in range(2, num):
+                        F = np.append(F, residual_funcs[i](*old_vals)(*guesses_k)[1:-1,1:-1].ravel())
+
+            # check if the residual functions has infinity values
+            inf = np.isinf(F)
+            nan = np.isnan(F)
+            print("     F has inf: {}\n     F has nan: {}".format(inf.any(),nan.any()))
+
+            # Jacobian
+            # J = Jacobian_builder.Sparse_Jacobian_deprecated(*guesses_k)
+            J = Jacobian_builder.Sparse_Jacobian(*guesses_k)
+            cond_num = pyamg.util.linalg.condest(J)
+            print('     condition number=',cond_num )
+            info['condition_num'].append(cond_num)
+
+            # conjugate Gradient Pyamg
+            # delta,info_cg = pyamg.krylov.cg(J,-F, maxiter=10000, tol=Tol)
+
+            ml = pyamg.ruge_stuben_solver(J)
+            residuals = []
+            delta = ml.solve(-F,x0=np.zeros_like(F), maxiter=1000, tol= Tol, residuals=residuals)
+
+            # collect data
+            info["non-linear-iterations_res"][non_linear_iterations] = residuals
+            # delta,info =scipy.sparse.linalg.cg(J, -F, tol=1e-1*Tol, maxiter=50000)
+            if verbose:
+                print(ml)
+                print('residuals=', residuals)
+                # print('convergence info:',info_cg)
+            if info_cg!=None:
+                info["conjugate-gradient-cgne "] = info_cg
+            # deltas with ghost cells
+            # deltas[0][1:-1, 1:-1] = [delta[:num_eq_per_guess[1]].reshape(size_guess_ngc[0][0], size_guess_ngc[0][1])]
+            # deltas[0][1:-1, 1:-1] = [delta[:num_eq_per_guess[1]].reshape(size_guess_ngc[0][0], size_guess_ngc[0][1])]
+            for i in range(num):
+                size_y, size_x = size_guess_ngc[i]
+                deltas[i][1:-1, 1:-1] = delta[num_eq_per_guess[i]:num_eq_per_guess[i + 1]].reshape(size_y, size_x)
+            # deltas[num - 1][1:-1, 1:-1] = [delta[num_eq_per_guess[num - 1]:].reshape(size_guess_ngc[num - 1][0], size_guess_ngc[num - 1][1])]
+
+            # compute the new delta as a vector
+            new_delta = None
+            if num == 1:
+                new_delta = deltas[0].ravel()
+            else:
+                new_delta = np.append(deltas[0].ravel(), deltas[1].ravel())
+                if num >= 2:
+                    for i in range(2, num):
+                        new_delta = np.append(new_delta, deltas[i].ravel())
+
+            # update the next X
+            nextX = lastX + new_delta  # update estimate using N-R
+
+            # infinity norm
+            # infty_norm = np.linalg.norm(new_delta, np.inf)
+            res = residuals[-1]
+            non_linear_iterations += 1
+
+        # return the sol a list
+        # sol = [nextX[:num_eq_per_guess_wgc[1]].reshape(size_guess[0][0], size_guess[0][1])]
+        sol = []
+        for i in range(num):
+            size_y, size_x = size_guess[i]
+            sol.append(nextX[num_eq_per_guess_wgc[i]:num_eq_per_guess_wgc[i + 1]].reshape(size_y, size_x))
+        # sol.append(nextX[num_eq_per_guess_wgc[num - 1]:].reshape(size_guess[num - 1][0], size_guess[num - 1][1]))
+        info['non-linear-iterations'] = non_linear_iterations
+        info['infty-norm'] = res
+
+        return sol, non_linear_iterations, res, info
+
 
     def urhs(self, u, v):
         μ = self.probDescription.μ
